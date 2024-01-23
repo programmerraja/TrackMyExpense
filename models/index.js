@@ -1,9 +1,11 @@
 const Expense = require("./expense.js");
+const User = require("./user.js");
+
 const { EXPENSE_TYPE } = require("../controllers/expense.js");
 const mongoose = require("mongoose");
 const { Mongoose } = require("mongoose");
 
-module.exports = { Expense };
+module.exports = { Expense ,User};
 
 // DEBT_BOUGHT store as postive 
 // DEBT_GIVEN store as negative
