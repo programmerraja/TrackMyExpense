@@ -1,0 +1,88 @@
+.block {
+  display: block;
+}
+.pfixed {
+  position: fixed;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.fromContainer {
+  max-width: 28rem;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  background-color: var(--primary-color);
+  padding: 2rem;
+}
+.fromContainer span {
+  margin-bottom: 0.5rem;
+}
+.fromContainer textarea,
+.fromContainer input,
+.fromContainer select {
+  height: 30px;
+  border: 0;
+  outline: none;
+}
+.fromContainer textarea {
+  height: 50px;
+}
+
+.formBtn {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  height: 2.5rem;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+.twoFrom input {
+  margin-right: 0.2rem;
+  width: 90%;
+}
+.fromCloseIcon {
+  position: fixed;
+  display: flex;
+  cursor: pointer;
+  align-items: flex-start;
+  right: 10px;
+  top: 10px;
+}
+@media (max-width: 500px) {
+  .fromContainer {
+    padding: 1rem;
+  }
+  .pfixed {
+    width: 97%;
+    position: fixed;
+    bottom: 0;
+  }
+  .fromContainer textarea,
+  .fromContainer input,
+  .fromContainer select {
+    height: 40px;
+    border: 0;
+    outline: none;
+  }
+  .fromContainer textarea {
+    height: 60px;
+  }
+}
+
+.addBtn {
+  position: fixed;
+  bottom: 1%;
+  z-index: 100;
+  right: 3%;
+}
+.addBtn button {
+  width: 48px;
+  cursor: pointer;
+  height: 48px;
+  padding: 2px;
+  border-radius: 9999px;
+  background-color: rgb(37 99 235/1);
+  outline: 0;
+  border: 0;
+}

@@ -1,0 +1,43 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  position: relative;
+  width: 99%;
+  /* box-shadow: 0 4px 8px 0 rgb(0 0 0 / 20%), 0 6px 20px 0 rgb(0 0 0 / 19%); */
+  margin: auto;
+  padding: 1rem;
+  min-height: 99vh;
+}
+.dashboardHeader {
+  margin-bottom: 100px;
+}
+.dashboardHeader button {
+  padding: 0.5rem;
+  width: 100px;
+}
+
+.priceCardContainer {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.priceCard {
+  border: 1px solid var(--primary-color);
+  padding: 0.2rem 1rem;
+}
+
+.priceCardTitle {
+  text-transform: uppercase;
+  margin: 0;
+}
+
+
+
+@media (max-width: 500px) {
+  .priceCardContainer {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
