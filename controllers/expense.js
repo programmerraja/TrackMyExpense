@@ -141,7 +141,7 @@ async function getData(type, basicMatchQuery, params) {
       },
       {
         $group: {
-          _id: "category",
+          _id: "$category",
           amount: { $sum: "$amount" },
         },
       },
@@ -159,8 +159,9 @@ async function getData(type, basicMatchQuery, params) {
 
 exports.getExpense = async (req, res, next) => {
   try {
-    const startDate = req.query.startDate || dayjs().startOf("M").toISOString();
-    const endDate = req.query.endDate || dayjs().endOf("D").toISOString();
+    const startDate = req.query.start || dayjs().startOf("M").toISOString();
+    const endDate = req.query.end || dayjs().endOf("D").toISOString();
+    const name = req.query.name;
 
     const basicMatchQuery = {
       userId: req.user._id,
@@ -168,6 +169,9 @@ exports.getExpense = async (req, res, next) => {
     };
     if (req.query.all) {
       delete basicMatchQuery.eventDate;
+    }
+    if (name) {
+      basicMatchQuery["name"] = name.toLowerCase();
     }
     console.log(req.query, basicMatchQuery);
     const expenses = await getData(req.query.type, basicMatchQuery, req.query);

@@ -4,7 +4,7 @@ import API from "../../utils/API";
 import { EXPENSE_TYPE } from "../Dashboard";
 import errorHandler from "../../utils/errorHandler";
 
-export function From({ setShow, propsState }) {
+export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
   const [state, setState] = useState({
     type: EXPENSE_TYPE.INCOME,
     name: "",
@@ -19,6 +19,7 @@ export function From({ setShow, propsState }) {
       setState(propsState);
     }
   }, [propsState]);
+
   function inputConverter(type, value, id) {
     console.log(type, value, id);
     // excpect income and
@@ -43,13 +44,16 @@ export function From({ setShow, propsState }) {
 
   function onSubmit() {
     let payload = {};
+
     Object.keys(state).map((key) => {
       payload[key] = inputConverter(state.type, state[key], key);
     });
+
     API.addExpense(payload)
       .then(() => {
         errorHandler(false, "Done");
         setShow((e) => !e);
+        setAPICall((e) => !e);
       })
       .catch((err) => errorHandler(true, "Server Error"));
   }
@@ -106,7 +110,13 @@ export function From({ setShow, propsState }) {
             onChange={(e) => {
               handleChange(e.target);
             }}
+            list="options"
           ></input>
+          <datalist id="options">
+            {nameSuggestions && nameSuggestions.map((name) => (
+              <option>{name}</option>
+            ))}
+          </datalist>
         </label>
 
         <div className="d-flex twoFrom">
@@ -175,16 +185,14 @@ export function From({ setShow, propsState }) {
 function Category({ onChange, value }) {
   return (
     <select id="category" required="" onChange={onChange} value={value}>
-      <optgroup label="Essentials">
-        <option value="food">Food</option>
-        <option value="grocery">Grocery</option>
-        <option value="medical">Medical</option>
-      </optgroup>
       <optgroup label="Expenses">
         <option value="bills">Bills</option>
-        <option value="education">Education</option>
+        {/* <option value="education">Education</option> */}
         <option value="order">Online Order</option>
         <option value="rent">Rent</option>
+        <option value="home">home</option>
+        <option value="food">Food</option>
+        <option value="medical">Medical</option>
       </optgroup>
       <optgroup label="Leisure">
         <option value="entertainment">Entertainment</option>
@@ -193,10 +201,18 @@ function Category({ onChange, value }) {
         <option value="sports">Sports</option>
       </optgroup>
       <optgroup label="Payments">
-        <option value="emi">EMI</option>
-        <option value="savings">Savings</option>
+        {/* <option value="emi">EMI</option> */}
+        {/* <option value="savings">Savings</option> */}
         <option value="debt">Debt</option>
-        <option value="loan">Loan</option>
+        {/* <option value="loan">Loan</option> */}
+      </optgroup>
+      <optgroup label="income">
+        <option value="emi">salary</option>
+        <option value="savings">stock</option>
+      </optgroup>
+      <optgroup label="investment">
+        <option value="stock">stock</option>
+        <option value="post office">post office</option>
       </optgroup>
       <option value="other">Others</option>
     </select>
@@ -209,10 +225,15 @@ export function AddButton(props) {
   useEffect(() => {
     setShow(props.show);
   }, [props.show]);
+
   return (
     <div>
       <div className="addBtn">
-        <button onClick={() => setShow((p) => !p)}>
+        <button
+          onClick={() => {
+            setShow((p) => !p);
+          }}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -232,7 +253,14 @@ export function AddButton(props) {
       </div>
 
       <div>
-        {show && <From setShow={setShow} propsState={props.editData} />}
+        {show && (
+          <From
+            setShow={setShow}
+            propsState={props.editData}
+            setAPICall={props.setAPICall}
+            nameSuggestions={props.nameSuggestions}
+          />
+        )}
       </div>
     </div>
   );

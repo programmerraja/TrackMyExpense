@@ -52,6 +52,11 @@ function App() {
               />
               <Route
                 exact
+                path={"/debt/:name"}
+                element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
+              />
+              <Route
+                exact
                 path={"/investment"}
                 element={<Dashboard type={EXPENSE_TYPE.INVESTMENT} />}
               />

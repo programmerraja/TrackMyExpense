@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLocation, useParams } from 'react-router';
+
 
 import SquareLoader from "../../components/SquareLoader";
+// import "dayjs";
 
 import errorHandler from "../../utils/errorHandler";
 import API from "../../utils/API";
@@ -88,51 +91,90 @@ export const URL_MAPPER = {
 const CATEGORY = [""];
 
 function Dashboard({ type }) {
-  const date = useRef({});
+  // const date = useRef({
+  //   start: new Date().toISOString(),
+  //   end: new Date().toISOString(),
+  //    // start: dayjs().startOf("M").toISOString(),
+  //   // end: dayjs().endOf("D").toISOString(),
+  // });
+
+  const [apiCall, setAPICall] = useState(false);
 
   const [showForm, setShowFrom] = useState(false);
 
+  const [date, setDate] = useState({
+    start:new Date(new Date().setMinutes(-100000000)).toISOString(),
+    end: new Date(new Date().setMinutes(360)).toISOString(),
+  });
+
   const editDataRef = useRef(undefined);
 
-  const { loading, dashboardData, tableData } = useFeatchData(type);
+  const {name} = useParams()
+
+  console.log(name,"name")
+  const { loading, dashboardData, tableData } = useFeatchData(
+    type,
+    apiCall,
+    date,
+    name,
+  );
+
+
+  
+  const nameSuggestions =
+    tableData &&
+    tableData.data &&
+    Array.from(new Set(tableData.data.map((obj) => obj.name)));
 
   function onEdit(state) {
     editDataRef.current = state;
     setShowFrom(true);
   }
+
   function onDelete(id) {
     API.deleteExpense(id).then((res) => {
       errorHandler(false, "done");
+      setAPICall((e) => !e);
     });
   }
 
+  function handleApply() {}
   return (
     <>
       <SquareLoader loading={loading} msg={".............."} />
-      <AddButton show={showForm} editData={editDataRef.current} />
+      <AddButton
+        show={showForm}
+        editData={editDataRef.current}
+        setAPICall={setAPICall}
+        nameSuggestions={nameSuggestions}
+      />
       <div className="dashboard">
+        <h3>{type}</h3>
         <div className="dashboardHeader">
           <input
             type="date"
-            onChange={(e) => (date.current["start"] = e.target.value)}
+            onChange={(e) => setDate({ ...date, start: e.target.value })}
+            value={date["start"].substring(0, 10)}
           ></input>
           <input
             type="date"
-            onChange={(e) => (date.current["end"] = e.target.value)}
+            value={date["end"].substring(0, 10)}
+            onChange={(e) => (setDate({ ...date, end: e.target.value }))}
           ></input>
-          <button onClick={() => {}}>Apply</button>
+          <button onClick={() => {setAPICall(e=>!e)}}>Apply</button>
         </div>
+        {type === EXPENSE_TYPE.DEBT && <p>postive mean i need to give</p>}
         <div className="priceCardContainer">
           {dashboardData &&
             Object.keys(dashboardData).map((key) => (
               <PriceCard
                 title={key}
                 amount={dashboardData[key]}
-                showLink={type === EXPENSE_TYPE.DASHBOARD}
+                showLink={type === EXPENSE_TYPE.DASHBOARD || type === EXPENSE_TYPE.DEBT}
               />
             ))}
         </div>
-        {tableData && tableData.data ? (
+        {tableData && tableData.data && tableData.data.length ? (
           <Table
             heading={tableData.heading}
             data={tableData.data}
@@ -149,7 +191,7 @@ function Dashboard({ type }) {
 
 function PriceCard({ title, amount, showLink }) {
   return (
-    <a href={`${showLink ? URL_MAPPER[title] : ""}`}>
+    <a href={`${showLink ? URL_MAPPER[title] || "/debt/"+title : ""}`}>
       <div className="priceCard">
         <div className="d-flex">
           <h5 className="priceCardTitle">{title}</h5>
@@ -177,13 +219,20 @@ function PriceCard({ title, amount, showLink }) {
 
 export default Dashboard;
 
-function useFeatchData(type) {
+function useFeatchData(type, apiCall, date,name) {
   const [dashboardData, setDashboardData] = useState([]);
   const [tableData, setTableData] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    API.getExpense(type, "").then((res) => {
+    let params = "";
+    if (date && date.start) {
+      params += `start=${date.start}&end=${date.end}`;
+    }
+    if(name){
+      params+=`&name=${name}`
+    }
+    API.getExpense(type, params).then((res) => {
       console.log(res.data.data);
       let temp = {};
       if (type === EXPENSE_TYPE.DASHBOARD) {
@@ -210,7 +259,7 @@ function useFeatchData(type) {
       setDashboardData(temp);
       setLoading(false);
     });
-  }, []);
+  }, [apiCall]);
 
   return { loading, dashboardData, tableData };
 }
