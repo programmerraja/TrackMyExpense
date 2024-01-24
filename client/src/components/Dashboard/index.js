@@ -103,7 +103,7 @@ function Dashboard({ type }) {
   const [showForm, setShowFrom] = useState(false);
 
   const [date, setDate] = useState({
-    start:new Date(new Date().setMinutes(-1000000)).toISOString(),
+    start:new Date(new Date().setDate(1)).toISOString(),
     end: new Date(new Date().setMinutes(360)).toISOString(),
   });
 
