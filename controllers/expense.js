@@ -193,8 +193,8 @@ exports.addExpense = async (req, res, next) => {
   try {
     let response;
     if (req.body._id) {
-      const { _id, data } = req.body;
-      response = await Expense.findByIdAndUpdate(
+      const { _id, ...data } = req.body;
+      response = await Expense.updateOne(
         { _id: req.body._id, userId: req.user._id },
         data
       );
