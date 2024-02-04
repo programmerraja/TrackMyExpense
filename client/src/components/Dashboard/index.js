@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation, useParams } from 'react-router';
-
+import { useLocation, useParams } from "react-router";
 
 import SquareLoader from "../../components/SquareLoader";
 // import "dayjs";
@@ -88,7 +87,8 @@ export const URL_MAPPER = {
   DASHBOARD: "#",
 };
 
-const CATEGORY = [""];
+let IS_FETCH_ALL_DATA = false;
+
 
 function Dashboard({ type }) {
   // const date = useRef({
@@ -102,25 +102,24 @@ function Dashboard({ type }) {
 
   const [showForm, setShowFrom] = useState(false);
 
+  const queryParams = new URLSearchParams(window.location.search)
+
   const [date, setDate] = useState({
-    start:new Date(new Date().setDate(1)).toISOString(),
-    end: new Date(new Date().setMinutes(360)).toISOString(),
+    start: queryParams.get('start') ? new Date(queryParams.get('start')).toISOString() :  new Date(new Date().setDate(1)).toISOString(),
+    end: queryParams.get('end') ? new Date(queryParams.get('end')).toISOString() :  new Date(new Date().setMinutes(360)).toISOString(),
   });
 
   const editDataRef = useRef(undefined);
 
-  const {name} = useParams()
+  const { name } = useParams();
 
-  console.log(name,"name")
   const { loading, dashboardData, tableData } = useFeatchData(
     type,
     apiCall,
     date,
-    name,
+    name
   );
 
-
-  
   const nameSuggestions =
     tableData &&
     tableData.data &&
@@ -153,15 +152,30 @@ function Dashboard({ type }) {
         <div className="dashboardHeader">
           <input
             type="date"
-            onChange={(e) => setDate({ ...date, start: e.target.value })}
+            onChange={(e) => setDate({ ...date, start:new Date(e.target.value).toISOString() })}
             value={date["start"].substring(0, 10)}
           ></input>
           <input
             type="date"
             value={date["end"].substring(0, 10)}
-            onChange={(e) => (setDate({ ...date, end: e.target.value }))}
+            onChange={(e) => setDate({ ...date, end: new Date(e.target.value).toISOString() })}
           ></input>
-          <button onClick={() => {setAPICall(e=>!e)}}>Apply</button>
+          <button
+            onClick={() => {
+              IS_FETCH_ALL_DATA = false;
+              setAPICall((e) => !e);
+            }}
+          >
+            Apply
+          </button>
+          <button
+            onClick={() => {
+              IS_FETCH_ALL_DATA = true;
+              setAPICall((e) => !e);
+            }}
+          >
+            all
+          </button>
         </div>
         {type === EXPENSE_TYPE.DEBT && <p>postive mean i need to give</p>}
         <div className="priceCardContainer">
@@ -170,7 +184,10 @@ function Dashboard({ type }) {
               <PriceCard
                 title={key}
                 amount={dashboardData[key]}
-                showLink={type === EXPENSE_TYPE.DASHBOARD || type === EXPENSE_TYPE.DEBT}
+                showLink={
+                  type === EXPENSE_TYPE.DASHBOARD || type === EXPENSE_TYPE.DEBT
+                }
+                date= {date}
               />
             ))}
         </div>
@@ -189,9 +206,9 @@ function Dashboard({ type }) {
   );
 }
 
-function PriceCard({ title, amount, showLink }) {
+function PriceCard({ title, amount, showLink,date }) {
   return (
-    <a href={`${showLink ? URL_MAPPER[title] || "/debt/"+title : ""}`}>
+    <a href={`${showLink ? (URL_MAPPER[title] || "/debt/" + title) + `?start=${date.start}&end=${date.end}` : ""}`}>
       <div className="priceCard">
         <div className="d-flex">
           <h5 className="priceCardTitle">{title}</h5>
@@ -219,7 +236,7 @@ function PriceCard({ title, amount, showLink }) {
 
 export default Dashboard;
 
-function useFeatchData(type, apiCall, date,name) {
+function useFeatchData(type, apiCall, date, name) {
   const [dashboardData, setDashboardData] = useState([]);
   const [tableData, setTableData] = useState({});
   const [loading, setLoading] = useState(true);
@@ -229,8 +246,11 @@ function useFeatchData(type, apiCall, date,name) {
     if (date && date.start) {
       params += `start=${date.start}&end=${date.end}`;
     }
-    if(name){
-      params+=`&name=${name}`
+    if (IS_FETCH_ALL_DATA) {
+      params += `&all=${IS_FETCH_ALL_DATA}`;
+    }
+    if (name) {
+      params += `&name=${name}`;
     }
     API.getExpense(type, params).then((res) => {
       console.log(res.data.data);

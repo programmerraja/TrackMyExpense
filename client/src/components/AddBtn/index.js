@@ -207,7 +207,7 @@ function Category({ onChange, value }) {
         {/* <option value="loan">Loan</option> */}
       </optgroup>
       <optgroup label="income">
-        <option value="emi">salary</option>
+        <option value="salary">salary</option>
         <option value="savings">stock</option>
       </optgroup>
       <optgroup label="investment">
