@@ -11,6 +11,9 @@
 }
 .dashboardHeader {
   margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 .dashboardHeader button {
   padding: 0.5rem;
@@ -38,7 +41,8 @@
   .priceCardContainer {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
-  input[type="date"],button {
+  input[type="date"],
+  button {
     margin: 1rem 0.2rem !important;
   }
 }
@@ -95,10 +99,9 @@ button {
 input[type="date"] {
   position: relative;
   padding: 1rem 3.5rem 1rem 0.75rem;
-
   font-size: 1rem;
   font-family: monospace;
-  margin: 0 1rem;
+  margin: 1rem 1rem;
   border: 1px solid #8292a2;
   border-radius: 0.25rem;
   background: white
@@ -106,6 +109,7 @@ input[type="date"] {
     right 1rem center no-repeat;
 
   cursor: pointer;
+  color: black;
 }
 input[type="date"]:focus {
   outline: none;

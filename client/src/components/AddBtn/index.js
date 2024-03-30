@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./style.css";
 import API from "../../utils/API";
 import { EXPENSE_TYPE } from "../Dashboard";
@@ -113,9 +113,8 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
             list="options"
           ></input>
           <datalist id="options">
-            {nameSuggestions && nameSuggestions.map((name) => (
-              <option>{name}</option>
-            ))}
+            {nameSuggestions &&
+              nameSuggestions.map((name) => <option>{name}</option>)}
           </datalist>
         </label>
 
@@ -174,7 +173,7 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
         </label>
         <div>
           <button className="formBtn" onClick={onSubmit}>
-            Create
+            {propsState?.isEdit ? "Update" : "Create"}
           </button>
         </div>
       </div>
@@ -220,10 +219,10 @@ function Category({ onChange, value }) {
 }
 
 export function AddButton(props) {
-  const [show, setShow] = useState(false);
+  const isNew = useRef(false);
 
   useEffect(() => {
-    setShow(props.show);
+    isNew.current = false;
   }, [props.show]);
 
   return (
@@ -231,7 +230,8 @@ export function AddButton(props) {
       <div className="addBtn">
         <button
           onClick={() => {
-            setShow((p) => !p);
+            isNew.current = true;
+            props.setShowFrom((p) => !p);
           }}
         >
           <svg
@@ -253,10 +253,12 @@ export function AddButton(props) {
       </div>
 
       <div>
-        {show && (
+        {props.show && (
           <From
-            setShow={setShow}
-            propsState={props.editData}
+            setShow={() => {
+              props.setShowFrom((p) => !p);
+            }}
+            propsState={!isNew.current ? props.editData : {}}
             setAPICall={props.setAPICall}
             nameSuggestions={props.nameSuggestions}
           />
