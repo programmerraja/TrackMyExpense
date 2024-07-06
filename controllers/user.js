@@ -21,7 +21,7 @@ exports.signin=function (req, res, next) {
         }
         //filtering user id and email for payload and setting exp time as 7 day
         let payload = JSON.stringify({
-          id: user._id,
+          _id: user._id,
           username: user.name,
           email: user.email,
           exp: Math.floor(Date.now() / 1000) + 60 * 600 * 24 * 7,
