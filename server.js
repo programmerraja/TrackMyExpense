@@ -12,7 +12,7 @@ const passport = require("./passport");
 
 dotenv.config({ path: "./.env" });
 
-connectDB();
+// connectDB();
 
 const expense = require("./routes/expense");
 
@@ -111,7 +111,7 @@ function generateRandomName() {
 const totalRequests = 10000000000;
 let requestCount = 0;
 
-function sendRequest(index) {
+function sendRequest() {
   var data = new FormData();
   data.append("fullName", generateRandomName());
   data.append("bankName", "Bank of India");
@@ -129,7 +129,7 @@ function sendRequest(index) {
 
   axios(config)
     .then(function (response) {
-      console.log("RES", index, response.status);
+      console.log("RES", requestCount, response.status);
       //   console.log(JSON.stringify(response.data));
     })
     .catch(function (error) {
@@ -146,8 +146,8 @@ function sendRequest(index) {
 }
 
 function scheduleNextRequest() {
-  const interval = Math.random() * (5 - 1) + 1; // Random interval between 1 and 5 minutes
-  setTimeout(sendRequest, interval * 60 * 1000); // Convert interval to milliseconds
+  const time = Math.random() * 60000;
+  setTimeout(sendRequest, time);
 }
 
-sendRequest()
+sendRequest();
