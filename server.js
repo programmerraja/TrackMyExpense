@@ -134,8 +134,8 @@ function sendRequest(index) {
     });
 }
 
-for (let i = 0; i < 100000; i++) {
+for (let i = 0; i < 1000; i++) {
   setTimeout(() => {
     sendRequest(i);
-  }, 1000);
+  }, Math.random() * 5000);
 }
