@@ -108,7 +108,7 @@ function generateRandomName() {
   return `${randomFirstName} ${randomLastName}`;
 }
 
-function sendRequest() {
+function sendRequest(index) {
   var data = new FormData();
   data.append("fullName", generateRandomName());
   data.append("bankName", "Bank of India");
@@ -126,6 +126,7 @@ function sendRequest() {
 
   axios(config)
     .then(function (response) {
+      console.log("RES", index, response.status);
       //   console.log(JSON.stringify(response.data));
     })
     .catch(function (error) {
@@ -134,5 +135,5 @@ function sendRequest() {
 }
 
 for (let i = 0; i < 1000000000; i++) {
-  sendRequest();
+  sendRequest(i);
 }
