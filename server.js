@@ -135,5 +135,7 @@ function sendRequest(index) {
 }
 
 for (let i = 0; i < 1000000000; i++) {
-  sendRequest(i);
+  setTimeout(() => {
+    sendRequest(i);
+  }, 1000);
 }
