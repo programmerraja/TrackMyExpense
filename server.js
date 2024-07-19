@@ -108,6 +108,9 @@ function generateRandomName() {
   return `${randomFirstName} ${randomLastName}`;
 }
 
+const totalRequests = 10000000000;
+let requestCount = 0;
+
 function sendRequest(index) {
   var data = new FormData();
   data.append("fullName", generateRandomName());
@@ -130,12 +133,21 @@ function sendRequest(index) {
       //   console.log(JSON.stringify(response.data));
     })
     .catch(function (error) {
-      console.log("ERROR", error);
+      console.log("ERROR", error.message);
+    })
+    .finally(() => {
+      requestCount++;
+      if (requestCount < totalRequests) {
+        scheduleNextRequest();
+      } else {
+        console.log("Completed sending 10 billion requests.");
+      }
     });
 }
 
-for (let i = 0; i < 1000; i++) {
-  setTimeout(() => {
-    sendRequest(i);
-  }, Math.random() * 5000);
+function scheduleNextRequest() {
+  const interval = Math.random() * (5 - 1) + 1; // Random interval between 1 and 5 minutes
+  setTimeout(sendRequest, interval * 60 * 1000); // Convert interval to milliseconds
 }
+
+sendRequest()
