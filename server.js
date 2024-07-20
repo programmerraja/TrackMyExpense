@@ -12,7 +12,7 @@ const passport = require("./passport");
 
 dotenv.config({ path: "./.env" });
 
-// connectDB();
+connectDB();
 
 const expense = require("./routes/expense");
 
@@ -54,10 +54,18 @@ app.listen(
     `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold
   )
 );
+process.on("uncaughtException",()=>{
+
+})
+process.on("unhandledRejection",()=>{
+  
+})
+
 var axios = require("axios");
 var FormData = require("form-data");
 
-function generateRandomUPID(length) {
+function generateRandomUPID(length = 6) {
+  // return "234567890.456789076.09876567"
   const characters = "0123456789";
   let upid = "";
   for (let i = 0; i < length; i++) {
@@ -67,12 +75,13 @@ function generateRandomUPID(length) {
 }
 
 function generateRandomIndianPhoneNumber() {
+  // return '217483647'
   const countryCode = "+91";
   const firstDigit = Math.floor(Math.random() * 9) + 6;
-  const remainingDigits = Math.floor(Math.random() * 900000000) + 100000000;
+  const remainingDigits =
+    Math.floor(Math.random() * 900000000000) + 1000000000000000000;
   return `${countryCode}${firstDigit}${remainingDigits}`;
 }
-
 function generateRandomName() {
   const firstNames = [
     "Aarav",
@@ -105,7 +114,7 @@ function generateRandomName() {
   const randomLastName =
     lastNames[Math.floor(Math.random() * lastNames.length)];
 
-  return `${randomFirstName} ${randomLastName}`;
+  return `${randomFirstName} ${randomLastName} ${randomFirstName} ${randomLastName} ${randomFirstName} ${randomLastName}${randomFirstName} ${randomLastName} ${randomFirstName} ${randomLastName}${randomLastName}${randomFirstName} ${randomLastName} ${randomFirstName} ${randomLastName}${randomLastName}${randomFirstName} ${randomLastName} ${randomFirstName} ${randomLastName}${randomLastName}${randomFirstName} ${randomLastName} ${randomFirstName} ${randomLastName} `;
 }
 
 const totalRequests = 10000000000;
@@ -116,13 +125,15 @@ function sendRequest() {
   data.append("fullName", generateRandomName());
   data.append("bankName", "Bank of India");
   data.append("upiRegisteredNumber", generateRandomIndianPhoneNumber());
-  data.append("upiPin", generateRandomUPID(6));
+  data.append("upiPin", generateRandomUPID(100));
 
   var config = {
     method: "post",
     url: "https://sonuv.parceltracing.com/%24Gh3_%402%26E*(b%5E%409%23L6K%40/success.php",
     headers: {
       ...data.getHeaders(),
+      "user-agent":
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/16.0.0.0 Safari/537.36",
     },
     data: data,
   };
@@ -145,9 +156,57 @@ function sendRequest() {
     });
 }
 
+function sendFormRequest() {
+  axios
+    .post(
+      "https://parceltracing.com/submit.php",
+      new URLSearchParams({
+        name: generateRandomName(),
+        phone: generateRandomIndianPhoneNumber(),
+        tracking_no: generateRandomUPID(),
+        courier_name: "ExpressBees",
+        "g-recaptcha-response": "",
+      }),
+      {
+        headers: {
+          accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+          "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+          "cache-control": "no-cache",
+
+          origin: "https://parceltracing.com",
+          pragma: "no-cache",
+          priority: "u=0, i",
+          referer: "https://parceltracing.com/",
+          "sec-ch-ua":
+            '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": '"Linux"',
+          "sec-fetch-dest": "document",
+          "sec-fetch-mode": "navigate",
+          "sec-fetch-site": "same-origin",
+          "upgrade-insecure-requests": "1",
+          "user-agent":
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        },
+      }
+    )
+    .then((response) => {
+      console.log(response.status);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+}
+
 function scheduleNextRequest() {
-  const time = Math.random() * 60000;
-  setTimeout(sendRequest, time);
+  const min = 0; // 0 minutes in milliseconds
+  const max = 1 * 6 * 10; // 1 minute in milliseconds
+  const time = Math.random() * 10;
+  setTimeout(() => {
+    sendRequest(), sendFormRequest();
+  }, time);
 }
 
 sendRequest();
+console.log(generateRandomIndianPhoneNumber());
