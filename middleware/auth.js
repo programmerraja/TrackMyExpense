@@ -33,6 +33,7 @@ const auth = {
             if (user) {
               req.user = user;
             }
+			next()
           }
         } else {
           res.status(400).json({

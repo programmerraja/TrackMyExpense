@@ -218,7 +218,9 @@
           summary: `IRCTC Ticket Booking Reminder (${notes})`,
           description: "Reminder to book IRCTC ticket",
           start: {
-            dateTime: new Date(new Date(travelDates)).toISOString(),
+            dateTime: new Date(
+              new Date(travelDates).setMinutes(-5)
+            ).toISOString(),
           },
           end: {
             dateTime: new Date(new Date().setMinutes(15)).toISOString(),

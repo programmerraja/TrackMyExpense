@@ -29,7 +29,7 @@ if (process.env.NODE_ENV === "development") {
 }
 app.use("/api/v1/signin", user);
 
-app.get("/irctc", auth.isAuthenticated(), (req, res) => {
+app.get("/irctc", (req, res) => {
   res.render("irctc", {
     id: process.env.GOOGLE_CLIENT_ID,
     secret: process.env.GOOGLE_SECRET,
