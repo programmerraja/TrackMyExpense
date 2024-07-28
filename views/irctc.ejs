@@ -1,0 +1,289 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IRCTC Ticket Booking Reminders</title>
+  </head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    header {
+      background-color: #333;
+      color: #fff;
+      padding: 1em;
+      text-align: center;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2em;
+    }
+
+    section {
+      background-color: #f7f7f7;
+      padding: 1em;
+      margin-bottom: 1em;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1,
+    h2 {
+      margin-top: 0;
+    }
+
+    button {
+      background-color: #333;
+      color: #fff;
+      border: none;
+      padding: 0.5em 1em;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #444;
+    }
+
+    #calendar-select {
+      width: 100%;
+      padding: 0.5em;
+      margin-bottom: 1em;
+    }
+
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      color: #fff;
+      display: none;
+    }
+
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fff;
+      padding: 1em;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      display: none;
+    }
+    #travel-dates-section {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    #travel-dates-section > * {
+      margin: 0.5rem;
+    }
+    #ticket-booking-date {
+      color: red;
+    }
+  </style>
+  <body>
+    <header>
+      <h1>IRCTC Ticket Booking Reminders</h1>
+    </header>
+    <main>
+      <section id="calendar-section">
+        <button id="authorize-btn">Authorize with Google</button>
+        <h2>Choose a calendar:</h2>
+        <select id="calendar-select"></select>
+      </section>
+      <section id="travel-dates-section">
+        <h2>Add travel dates:</h2>
+        <input type="date" id="travel-date" placeholder="YYYY-MM-DD" />
+        <span id="ticket-booking-date"></span>
+        <textarea id="travel-notes" placeholder="notes" rows="5"></textarea>
+        <button id="add-reminder-btn">Add Reminder</button>
+      </section>
+    </main>
+    <div class="loading" id="loading">Loading...</div>
+    <div class="popup" id="popup"></div>
+
+    <script>
+      const pathname =
+        window.location.pathname === "/" ? "" : window.location.pathname;
+      const redirect_uri = `${window.location.origin}${pathname}`;
+      let accessToken = "";
+      const CLIENT_ID = "<%=id %>";
+      const API_KEY = "<%=secret %>";
+
+      let travelDates;
+
+      function authorize() {
+        const authorizeBtn = document.getElementById("authorize-btn");
+        authorizeBtn.addEventListener("click", () => {
+          window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${redirect_uri}&scope=https://www.googleapis.com/auth/calendar&response_type=code`;
+        });
+      }
+
+      function handleAuthCode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get("code");
+        if (code) {
+          showLoading();
+          fetch(
+            `https://oauth2.googleapis.com/token?client_id=${CLIENT_ID}&client_secret=${API_KEY}&redirect_uri=${redirect_uri}&grant_type=authorization_code&code=${code}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            }
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              accessToken = data.access_token;
+              authenticateWithGoogleCalendar();
+            })
+            .catch((error) => {
+              console.error(error);
+              hideLoading();
+              showPopup("Error", "Failed to authenticate with Google");
+            });
+        }
+      }
+
+      function authenticateWithGoogleCalendar() {
+        fetch(
+          `https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=${accessToken}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            const calendars = data.items;
+            console.log(calendars, "calendars");
+            const calendarSelect = document.getElementById("calendar-select");
+            calendars.forEach((calendar) => {
+              const option = document.createElement("option");
+              option.value = calendar.id;
+              option.text = calendar.summary;
+              calendarSelect.appendChild(option);
+            });
+            hideLoading();
+          })
+          .catch((error) => {
+            console.error(error);
+            hideLoading();
+            showPopup("Error", "Failed to authenticate with Google Calendar");
+          });
+      }
+
+      function addTravelDate() {
+        const travelDateInput = document.getElementById("travel-date");
+        const travelDate = travelDateInput.value;
+        // alert(travelDate)
+        if (travelDate) {
+          travelDates = new Date(
+            new Date(
+              new Date(travelDate).getTime() - 120 * 24 * 60 * 60 * 1000
+            ).setHours(8, 0, 0)
+          );
+
+          document.querySelector(
+            "#ticket-booking-date"
+          ).innerHTML = `Ticket book on ${travelDates.toDateString()}`;
+        }
+      }
+
+      function addReminder() {
+        showLoading();
+        const calendarSelect = document.getElementById("calendar-select");
+        const calendarId = calendarSelect.value;
+        const travelDatesList = document.getElementById("travel-dates-list");
+        const notes = document.querySelector("textarea").value.trim();
+        const event = {
+          summary: `IRCTC Ticket Booking Reminder (${notes})`,
+          description: "Reminder to book IRCTC ticket",
+          start: {
+            dateTime: new Date(new Date(travelDates)).toISOString(),
+          },
+          end: {
+            dateTime: new Date(new Date().setMinutes(15)).toISOString(),
+          },
+        };
+        fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?access_token=${accessToken}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(event),
+          }
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data);
+            hideLoading();
+            showPopup("Success", "Reminder created successfully");
+          })
+          .catch((error) => {
+            console.error(error);
+            hideLoading();
+            showPopup("Error", "Failed to add reminder");
+          });
+      }
+
+      function showLoading() {
+        const loading = document.getElementById("loading");
+        loading.style.display = "flex";
+      }
+
+      function hideLoading() {
+        const loading = document.getElementById("loading");
+        loading.style.display = "none";
+      }
+
+      function showPopup(title, message) {
+        const popup = document.getElementById("popup");
+        popup.innerHTML = `
+          <h2>${title}</h2>
+          <p>${message}</p>
+          <button id="close-popup-btn">Close</button>
+        `;
+        popup.style.display = "block";
+        document
+          .getElementById("close-popup-btn")
+          .addEventListener("click", () => {
+            popup.style.display = "none";
+          });
+      }
+
+      document
+        .getElementById("authorize-btn")
+        .addEventListener("click", authorize);
+      document
+        .getElementById("travel-date")
+        .addEventListener("change", addTravelDate);
+      document
+        .getElementById("add-reminder-btn")
+        .addEventListener("click", addReminder);
+
+      handleAuthCode();
+    </script>
+  </body>
+</html>

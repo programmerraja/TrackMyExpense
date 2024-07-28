@@ -21,11 +21,20 @@ const user = require("./routes/user");
 const app = express();
 
 app.use(express.json());
+app.set("view engine", "ejs");
+app.set("views", "./views");
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 app.use("/api/v1/signin", user);
+
+app.get("/irctc", auth.isAuthenticated(), (req, res) => {
+  res.render("irctc", {
+    id: process.env.GOOGLE_CLIENT_ID,
+    secret: process.env.GOOGLE_SECRET,
+  });
+});
 
 app.use(
   "/api/v1/expense",
