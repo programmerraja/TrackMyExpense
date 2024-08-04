@@ -173,6 +173,9 @@ exports.getExpense = async (req, res, next) => {
     if (name) {
       basicMatchQuery["name"] = name.toLowerCase();
     }
+    if (req.query.category) {
+      basicMatchQuery["category"] = req.query.category.toLowerCase();
+    }
     console.log(req.query, basicMatchQuery);
     const expenses = await getData(req.query.type, basicMatchQuery, req.query);
 

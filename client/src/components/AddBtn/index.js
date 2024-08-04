@@ -4,25 +4,23 @@ import API from "../../utils/API";
 import { EXPENSE_TYPE } from "../Dashboard";
 import errorHandler from "../../utils/errorHandler";
 
-export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
+export function Form({ setShow, propsState, setAPICall, nameSuggestions }) {
   const [state, setState] = useState({
     type: EXPENSE_TYPE.INCOME,
     name: "",
     amount: 0,
     eventDate: new Date().toISOString().substring(0, 10),
-    category: "Food",
+    category: "food",
     note: "",
   });
 
   useEffect(() => {
-    if (propsState) {
+    if (Object.keys(propsState).length) {
       setState(propsState);
     }
   }, [propsState]);
 
-  function inputConverter(type, value, id) {
-    console.log(type, value, id);
-    // excpect income and
+  const inputConverter = (type, value, id) => {
     if (
       ![EXPENSE_TYPE.INCOME, EXPENSE_TYPE.DEBT_BOUGHT].includes(type) &&
       id === "amount"
@@ -33,19 +31,17 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
       return value.toLowerCase();
     }
     return value;
-  }
+  };
 
-  function handleChange(element) {
-    setState({
-      ...state,
-      [element.id]: element.value,
-    });
-  }
+  console.log(state, "log");
+  const handleChange = (element) => {
+    setState((prevState) => ({ ...prevState, [element.id]: element.value }));
+  };
 
-  function onSubmit() {
-    let payload = {};
-
-    Object.keys(state).map((key) => {
+  const onSubmit = () => {
+    const payload = {};
+    console.log(state, "stat");
+    Object.keys(state).forEach((key) => {
       payload[key] = inputConverter(state.type, state[key], key);
     });
 
@@ -56,7 +52,7 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
         setAPICall((e) => !e);
       })
       .catch((err) => errorHandler(true, "Server Error"));
-  }
+  };
 
   return (
     <div className="pfixed">
@@ -87,10 +83,8 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
           <select
             id="type"
             required=""
-            value={state["type"]}
-            onChange={(e) => {
-              handleChange(e.target);
-            }}
+            value={state.type}
+            onChange={(e) => handleChange(e.target)}
           >
             <option value={EXPENSE_TYPE.INCOME}>income</option>
             <option value={EXPENSE_TYPE.EXPENSE}>expense</option>
@@ -104,12 +98,10 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
           <span className="block text-sm font-medium text-zinc-800">Name</span>
           <input
             type="text"
-            value={state["name"]}
+            value={state.name}
             placeholder="name"
             id="name"
-            onChange={(e) => {
-              handleChange(e.target);
-            }}
+            onChange={(e) => handleChange(e.target)}
             list="options"
           ></input>
           <datalist id="options">
@@ -125,12 +117,10 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
             </span>
             <input
               type="number"
-              value={Math.abs(state["amount"])}
+              value={Math.abs(state.amount)}
               id="amount"
               placeholder="amount"
-              onChange={(e) => {
-                handleChange(e.target);
-              }}
+              onChange={(e) => handleChange(e.target)}
             ></input>
           </label>
 
@@ -141,10 +131,8 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
             <input
               type="date"
               id="eventDate"
-              value={state["eventDate"]}
-              onChange={(e) => {
-                handleChange(e.target);
-              }}
+              value={state.eventDate}
+              onChange={(e) => handleChange(e.target)}
             ></input>
           </label>
         </div>
@@ -154,10 +142,8 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
             Category
           </span>
           <Category
-            value={state["category"]}
-            onChange={(e) => {
-              handleChange(e.target);
-            }}
+            value={state.category}
+            onChange={(e) => handleChange(e.target)}
           ></Category>
         </label>
 
@@ -165,10 +151,8 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
           <span className="block text-sm font-medium text-zinc-800">Notes</span>
           <textarea
             id="note"
-            value={state["note"]}
-            onChange={(e) => {
-              handleChange(e.target);
-            }}
+            value={state.note}
+            onChange={(e) => handleChange(e.target)}
           />
         </label>
         <div>
@@ -180,44 +164,71 @@ export function From({ setShow, propsState, setAPICall, nameSuggestions }) {
     </div>
   );
 }
-
 function Category({ onChange, value }) {
   return (
-    <select id="category" required="" onChange={onChange} value={value}>
+    <select id="category" required="" onChange={onChange}>
       <optgroup label="Expenses">
-        <option value="bills">Bills</option>
-        {/* <option value="education">Education</option> */}
-        <option value="order">Online Order</option>
-        <option value="rent">Rent</option>
-        <option value="home">home</option>
-        <option value="food">Food</option>
-        <option value="medical">Medical</option>
+        <option value="bills" selected={value === "bills"}>
+          Bills
+        </option>
+        {/* <option value="education" selected={value === "education"}>Education</option> */}
+        <option value="order" selected={value === "order"}>
+          Online Order
+        </option>
+        <option value="rent" selected={value === "rent"}>
+          Rent
+        </option>
+        <option value="home" selected={value === "home"}>
+          home
+        </option>
+        <option value="food" selected={value === "food"}>
+          Food
+        </option>
+        <option value="medical" selected={value === "medical"}>
+          Medical
+        </option>
       </optgroup>
       <optgroup label="Leisure">
-        <option value="entertainment">Entertainment</option>
-        <option value="shopping">Shopping</option>
-        <option value="travel">Travel</option>
-        <option value="sports">Sports</option>
+        <option value="entertainment" selected={value === "entertainment"}>
+          Entertainment
+        </option>
+        <option value="shopping" selected={value === "shopping"}>
+          Shopping
+        </option>
+        <option value="travel" selected={value === "travel"}>
+          Travel
+        </option>
+        <option value="sports" selected={value === "sports"}>
+          Sports
+        </option>
       </optgroup>
       <optgroup label="Payments">
-        {/* <option value="emi">EMI</option> */}
-        {/* <option value="savings">Savings</option> */}
-        <option value="debt">Debt</option>
-        {/* <option value="loan">Loan</option> */}
+        <option value="debt" selected={value === "debt"}>
+          Debt
+        </option>
       </optgroup>
       <optgroup label="income">
-        <option value="salary">salary</option>
-        <option value="savings">stock</option>
+        <option value="salary" selected={value === "salary"}>
+          salary
+        </option>
+        <option value="savings" selected={value === "savings"}>
+          stock
+        </option>
       </optgroup>
       <optgroup label="investment">
-        <option value="stock">stock</option>
-        <option value="post office">post office</option>
+        <option value="stock" selected={value === "stock"}>
+          stock
+        </option>
+        <option value="post office" selected={value === "post office"}>
+          post office
+        </option>
       </optgroup>
-      <option value="other">Others</option>
+      <option value="other" selected={value === "other"}>
+        Others
+      </option>
     </select>
   );
 }
-
 export function AddButton(props) {
   const isNew = useRef(false);
 
@@ -254,11 +265,25 @@ export function AddButton(props) {
 
       <div>
         {props.show && (
-          <From
+          <Form
             setShow={() => {
               props.setShowFrom((p) => !p);
             }}
-            propsState={!isNew.current ? props.editData : {}}
+            propsState={
+              !isNew.current
+                ? props.editData
+                : {
+                    type:
+                      props.type !== "DASHBOARD"
+                        ? props.type
+                        : EXPENSE_TYPE.INCOME,
+                    name: "",
+                    amount: 0,
+                    eventDate: new Date().toISOString().substring(0, 10),
+                    category: "food",
+                    note: "",
+                  }
+            }
             setAPICall={props.setAPICall}
             nameSuggestions={props.nameSuggestions}
           />

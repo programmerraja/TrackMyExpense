@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useLocation, useParams } from "react-router";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useLocation, useParams } from "react-router-dom";
 
 import SquareLoader from "../../components/SquareLoader";
-// import "dayjs";
-
 import errorHandler from "../../utils/errorHandler";
 import API from "../../utils/API";
-
 import "./style.css";
 import Table from "../Table";
 import { AddButton } from "../AddBtn";
@@ -90,23 +87,17 @@ export const URL_MAPPER = {
 let IS_FETCH_ALL_DATA = false;
 
 function Dashboard({ type }) {
-  // const date = useRef({
-  //   start: new Date().toISOString(),
-  //   end: new Date().toISOString(),
-  //    // start: dayjs().startOf("M").toISOString(),
-  //   // end: dayjs().endOf("D").toISOString(),
-  // });
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
 
   const [apiCall, setAPICall] = useState(false);
 
   const [showForm, setShowFrom] = useState(false);
 
-  const queryParams = new URLSearchParams(window.location.search);
-
   const [date, setDate] = useState({
     start: queryParams.get("start")
       ? new Date(queryParams.get("start")).toISOString()
-      : new Date(new Date().setDate(1)).toISOString(),
+      : new Date(new Date().setDate(0)).toISOString(),
     end: queryParams.get("end")
       ? new Date(queryParams.get("end")).toISOString()
       : new Date().toISOString(),
@@ -114,13 +105,13 @@ function Dashboard({ type }) {
 
   const editDataRef = useRef(undefined);
 
-  const { name } = useParams();
   const { loading, dashboardData, tableData } = useFeatchData(
     type,
     apiCall,
     date,
-    name,
-    queryParams.get("all") || IS_FETCH_ALL_DATA
+    queryParams.get("name"),
+    queryParams.get("category"),
+    IS_FETCH_ALL_DATA || queryParams.get("all")
   );
 
   const nameSuggestions =
@@ -131,7 +122,6 @@ function Dashboard({ type }) {
   function onEdit(state) {
     editDataRef.current = state;
     editDataRef.current.isEdit = true;
-    console.log("showForm",showForm)
     setShowFrom(true);
   }
 
@@ -146,6 +136,7 @@ function Dashboard({ type }) {
     <>
       <SquareLoader loading={loading} msg={".............."} />
       <AddButton
+        type={type}
         show={showForm}
         setShowFrom={setShowFrom}
         editData={editDataRef.current}
@@ -194,11 +185,10 @@ function Dashboard({ type }) {
           {dashboardData &&
             Object.keys(dashboardData).map((key) => (
               <PriceCard
+                type={type}
                 title={key}
                 amount={dashboardData[key]}
-                showLink={
-                  type === EXPENSE_TYPE.DASHBOARD || type === EXPENSE_TYPE.DEBT
-                }
+                showLink={true}
                 date={date}
               />
             ))}
@@ -218,16 +208,14 @@ function Dashboard({ type }) {
   );
 }
 
-function PriceCard({ title, amount, showLink, date }) {
-  return (
-    <a
-      href={`${
-        showLink
-          ? URL_MAPPER[title] +
-            `?start=${date.start}&end=${date.end}&all=${IS_FETCH_ALL_DATA}`
-          : ""
-      }`}
-    >
+function PriceCard({ type, title, amount, showLink, date }) {
+  const queryParams = new URLSearchParams();
+  queryParams.set("start", date.start);
+  queryParams.set("end", date.end);
+  queryParams.set("all", IS_FETCH_ALL_DATA);
+
+  function CardWrapper() {
+    return (
       <div className="priceCard">
         <div className="d-flex">
           <h5 className="priceCardTitle">{title}</h5>
@@ -249,24 +237,39 @@ function PriceCard({ title, amount, showLink, date }) {
         </div>
         <h1 className="priceCardAmount">₹ {API.numberWithCommas(amount)}</h1>
       </div>
+    );
+  }
+
+  const urlKey = type === EXPENSE_TYPE.DEBT ? "name" : "category";
+
+  return showLink ? (
+    <a
+      href={
+        URL_MAPPER[title]
+          ? `${URL_MAPPER[title]}?${queryParams.toString()}`
+          : `?${queryParams.toString()}&${urlKey}=${title}`
+      }
+    >
+      <CardWrapper />
     </a>
+  ) : (
+    <CardWrapper />
   );
 }
 
-export default Dashboard;
-
-function useFeatchData(type, apiCall, date, name, all) {
+function useFeatchData(type, apiCall, date, name, category, all) {
   const [dashboardData, setDashboardData] = useState([]);
   const [tableData, setTableData] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let params = "";
+    const queryParams = new URLSearchParams();
     if (date && date.start) {
-      params += `start=${date.start}&end=${date.end}`;
+      queryParams.set("start", date.start);
+      queryParams.set("end", date.end);
     }
     if (all === true || all === "true") {
-      params += `&all=${all}`;
+      queryParams.set("all", all);
     }
     if (
       name &&
@@ -277,8 +280,21 @@ function useFeatchData(type, apiCall, date, name, all) {
         EXPENSE_TYPE.EXPENSE,
       ].includes(type)
     ) {
-      params += `&name=${name}`;
+      queryParams.set("name", name);
     }
+    if (
+      category &&
+      [
+        EXPENSE_TYPE.DEBT,
+        EXPENSE_TYPE.DEBT_BOUGHT,
+        EXPENSE_TYPE.DEBT_GIVEN,
+        EXPENSE_TYPE.EXPENSE,
+      ].includes(type)
+    ) {
+      queryParams.set("category", category);
+    }
+    const params = queryParams.toString();
+
     API.getExpense(type, params).then((res) => {
       console.log(res.data.data);
       let temp = {};
@@ -298,7 +314,6 @@ function useFeatchData(type, apiCall, date, name, all) {
         });
       }
 
-      //   let heading = Object.keys(res.data.data.content[0]);
       let heading = ["name", "amount", "note", "category", "type", "eventDate"];
 
       setTableData({ heading, data: res.data.data.content });
@@ -310,3 +325,5 @@ function useFeatchData(type, apiCall, date, name, all) {
 
   return { loading, dashboardData, tableData };
 }
+
+export default Dashboard;
