@@ -275,6 +275,7 @@ BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
 UID:${uid}
+PRODID:-//uid//IRCTC Reminder//EN
 DTSTAMP:${dtstamp.replace(/[-:]/g, "").split(".")[0]}Z
 SUMMARY:${event.summary}
 DESCRIPTION:${event.description}
