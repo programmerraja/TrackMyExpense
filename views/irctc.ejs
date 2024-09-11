@@ -263,18 +263,23 @@
             ).toISOString(),
           },
           end: {
-            dateTime: new Date(new Date().setMinutes(30)).toISOString(),
+            dateTime: new Date(new Date(travelDates).setMinutes(30)).toISOString(),
           },
         };
+
+        const uid = `uid-${new Date().getTime()}@irctc-reminder`;
+        const dtstamp = new Date().toISOString();
 
         const icsContent = `
 BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${dtstamp.replace(/[-:]/g, "").split(".")[0]}Z
 SUMMARY:${event.summary}
 DESCRIPTION:${event.description}
-DTSTART:${event.start.dateTime.replace(/[-:]/g, "").split(".")[0]}
-DTEND:${event.end.dateTime.replace(/[-:]/g, "").split(".")[0]}
+DTSTART:${event.start.dateTime.replace(/[-:]/g, "").split(".")[0]}Z
+DTEND:${event.end.dateTime.replace(/[-:]/g, "").split(".")[0]}Z
 END:VEVENT
 END:VCALENDAR
         `;
