@@ -102,7 +102,9 @@
     </header>
     <main>
       <section id="calendar-section">
-        <button id="authorize-btn">Authorize with Google</button>
+        <button id="authorize-btn" onclick="authorize">
+          Authorize with Google
+        </button>
         <h2>Choose a calendar:</h2>
         <select id="calendar-select"></select>
       </section>
@@ -220,12 +222,12 @@
           summary: `IRCTC Ticket Booking Reminder (${notes})`,
           description: "Reminder to book IRCTC ticket",
           start: {
-            dateTime: new Date(
-              new Date(travelDates).setMinutes(-5)
-            ).toISOString(),
+            dateTime: new Date(new Date(travelDates)).toISOString(),
           },
           end: {
-            dateTime: new Date(new Date().setMinutes(30)).toISOString(),
+            dateTime: new Date(
+              new Date(travelDates).setHours(8, 0, 0)
+            ).toISOString(),
           },
         };
         fetch(
@@ -241,9 +243,15 @@
         )
           .then((response) => response.json())
           .then((data) => {
-            console.log(data);
-            hideLoading();
-            showPopup("Success", "Reminder created successfully");
+            if (!data.error) {
+              console.log(data);
+              hideLoading();
+              showPopup("Success", "Reminder created successfully");
+            } else {
+              console.error(data.error);
+              hideLoading();
+              showPopup("Error", "Failed to add reminder");
+            }
           })
           .catch((error) => {
             console.error(error);
@@ -258,20 +266,19 @@
           summary: `IRCTC Ticket Booking Reminder (${notes})`,
           description: "Reminder to book IRCTC ticket",
           start: {
-            dateTime: new Date(
-              new Date(travelDates).setMinutes(-5)
-            ).toISOString(),
+            dateTime: new Date(new Date(travelDates)).toISOString(),
           },
           end: {
-            dateTime: new Date(new Date(travelDates).setMinutes(30)).toISOString(),
+            dateTime: new Date(
+              new Date(travelDates).setHours(8, 0, 0)
+            ).toISOString(),
           },
         };
 
         const uid = `uid-${new Date().getTime()}@irctc-reminder`;
         const dtstamp = new Date().toISOString();
 
-        const icsContent = `
-BEGIN:VCALENDAR
+        const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
 UID:${uid}
@@ -282,8 +289,7 @@ DESCRIPTION:${event.description}
 DTSTART:${event.start.dateTime.replace(/[-:]/g, "").split(".")[0]}Z
 DTEND:${event.end.dateTime.replace(/[-:]/g, "").split(".")[0]}Z
 END:VEVENT
-END:VCALENDAR
-        `;
+END:VCALENDAR`;
 
         const blob = new Blob([icsContent], { type: "text/calendar" });
         const url = URL.createObjectURL(blob);
@@ -319,9 +325,6 @@ END:VCALENDAR
           });
       }
 
-      document
-        .getElementById("authorize-btn")
-        .addEventListener("click", authorize);
       document
         .getElementById("travel-date")
         .addEventListener("change", addTravelDate);
