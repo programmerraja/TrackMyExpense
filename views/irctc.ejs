@@ -112,6 +112,7 @@
         <span id="ticket-booking-date"></span>
         <textarea id="travel-notes" placeholder="notes" rows="5"></textarea>
         <button id="add-reminder-btn">Add Reminder</button>
+        <button id="download-ics-btn">Download ICS</button>
       </section>
     </main>
     <div class="loading" id="loading">Loading...</div>
@@ -226,7 +227,6 @@
           end: {
             dateTime: new Date(new Date().setMinutes(30)).toISOString(),
           },
-          
         };
         fetch(
           `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?access_token=${accessToken}`,
@@ -250,6 +250,42 @@
             hideLoading();
             showPopup("Error", "Failed to add reminder");
           });
+      }
+
+      function downloadICS() {
+        const notes = document.querySelector("textarea").value.trim();
+        const event = {
+          summary: `IRCTC Ticket Booking Reminder (${notes})`,
+          description: "Reminder to book IRCTC ticket",
+          start: {
+            dateTime: new Date(
+              new Date(travelDates).setMinutes(-5)
+            ).toISOString(),
+          },
+          end: {
+            dateTime: new Date(new Date().setMinutes(30)).toISOString(),
+          },
+        };
+
+        const icsContent = `
+BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+SUMMARY:${event.summary}
+DESCRIPTION:${event.description}
+DTSTART:${event.start.dateTime.replace(/[-:]/g, "").split(".")[0]}
+DTEND:${event.end.dateTime.replace(/[-:]/g, "").split(".")[0]}
+END:VEVENT
+END:VCALENDAR
+        `;
+
+        const blob = new Blob([icsContent], { type: "text/calendar" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "reminder.ics";
+        a.click();
+        URL.revokeObjectURL(url);
       }
 
       function showLoading() {
@@ -286,6 +322,9 @@
       document
         .getElementById("add-reminder-btn")
         .addEventListener("click", addReminder);
+      document
+        .getElementById("download-ics-btn")
+        .addEventListener("click", downloadICS);
 
       handleAuthCode();
     </script>
