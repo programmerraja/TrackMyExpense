@@ -196,10 +196,11 @@
         const travelDate = travelDateInput.value;
         // alert(travelDate)
         if (travelDate) {
+          // add 120 days and at 7 50 am
           travelDates = new Date(
             new Date(
               new Date(travelDate).getTime() - 120 * 24 * 60 * 60 * 1000
-            ).setHours(8, 0, 0)
+            ).setHours(7, 50, 0)
           );
 
           document.querySelector(
@@ -223,8 +224,9 @@
             ).toISOString(),
           },
           end: {
-            dateTime: new Date(new Date().setMinutes(15)).toISOString(),
+            dateTime: new Date(new Date().setMinutes(30)).toISOString(),
           },
+          
         };
         fetch(
           `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?access_token=${accessToken}`,
