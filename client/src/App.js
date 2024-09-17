@@ -10,6 +10,7 @@ import Dashboard, { EXPENSE_TYPE } from "./components/Dashboard";
 import SideNav from "./components/SideNav";
 
 import Signin from "./pages/signin";
+import MonthlyExpenseGraph from "./pages/MonthlyExpenseGraph";
 
 import ProtectedRoute from "./utils/Route";
 
