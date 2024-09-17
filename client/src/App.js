@@ -10,6 +10,7 @@ import Dashboard, { EXPENSE_TYPE } from "./components/Dashboard";
 import SideNav from "./components/SideNav";
 
 import Signin from "./pages/signin";
+import MonthlyExpenseGraph from './pages/MonthlyExpenseGraph';
 
 import ProtectedRoute from "./utils/Route";
 
@@ -22,45 +23,50 @@ function App() {
       <div className="appSideContent">
         <Router>
           <Routes>
+            <Route path="/monthly-expense-graph" element={<MonthlyExpenseGraph />} />
             <Route exact path={"/signin"} element={<Signin />} />
 
-            <Route exact path="/" element={<ProtectedRoute />}>
-              <Route
-                exact
-                path={"/"}
-                element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
-              />
-              <Route
-                exact
-                path={"/dashboard"}
-                element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
-              />
-              <Route
-                exact
-                path={"/income"}
-                element={<Dashboard type={EXPENSE_TYPE.INCOME} />}
-              />
-              <Route
-                exact
-                path={"/expense"}
-                element={<Dashboard type={EXPENSE_TYPE.EXPENSE} />}
-              />
-              <Route
-                exact
-                path={"/debt"}
-                element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
-              />
-              <Route
-                exact
-                path={"/debt/:name"}
-                element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
-              />
-              <Route
-                exact
-                path={"/investment"}
-                element={<Dashboard type={EXPENSE_TYPE.INVESTMENT} />}
-              />
-            </Route>
+            {/* <Route
+              exact
+              path={"/"}
+              element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
+            /> */}
+            <Route
+              exact
+              path={"/dashboard"}
+              element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
+            />
+            <Route
+              exact
+              path={"/income"}
+              element={<Dashboard type={EXPENSE_TYPE.INCOME} />}
+            />
+             <Route
+              exact
+              path={"/expense/:name"}
+              element={<Dashboard type={EXPENSE_TYPE.EXPENSE} />}
+            />
+            <Route
+              exact
+              path={"/expense"}
+              element={<Dashboard type={EXPENSE_TYPE.EXPENSE} />}
+            />
+            <Route
+              exact
+              path={"/debt"}
+              element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
+            />
+             <Route
+              exact
+              path={"/debt/:name"}
+              element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
+            />
+            <Route
+              exact
+              path={"/investment"}
+              element={<Dashboard type={EXPENSE_TYPE.INVESTMENT} />}
+            />
+            <Route exact path="/" element={<ProtectedRoute />}></Route>
           </Routes>
         </Router>
       </div>

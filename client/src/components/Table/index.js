@@ -1,57 +1,45 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import "./style.css";
 
 export default function Table({ heading, data, onEdit, onDelete }) {
   return (
     <div className="tableContainer">
       <table>
-        <tr>
-          {heading.map((val) => (
-            <td>{val}</td>
+        <thead>
+          <tr>
+            {heading.map((val, index) => (
+              <th key={index}>{val}</th>
+            ))}
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((tableContent, index) => (
+            <tr key={index}>
+              {heading.map((val, index) => (
+                <td key={index}>
+                  {val === "eventDate"
+                    ? new Date(tableContent[val]).toLocaleDateString()
+                    : tableContent[val]}
+                </td>
+              ))}
+              <td>
+                <i
+                  className="fas fa-edit edit-icon"
+                  onClick={() => onEdit(tableContent)}
+                  title="Edit"
+                ></i>
+                <i
+                  className="fa-solid fa-trash-can delete-icon"
+                  onClick={() => onDelete(tableContent._id)}
+                  title="Delete"
+                  style={{ marginLeft: '12px' }}
+                ></i>
+              </td>
+            </tr>
           ))}
-          <td>Edit</td>
-          <td>delete</td>
-        </tr>
-        {data.map((tableContent) => {
-          return (
-            <>
-              <tr>
-                {heading.map((val) => (
-                  <td>
-                    {val === "eventDate"
-                      ? new Date(tableContent[val]).toDateString()
-                      : tableContent[val]}
-                  </td>
-                ))}
-
-                <td>
-                  {" "}
-                  <i
-                    class="fas fa-edit"
-                    onClick={() => {
-                      onEdit(tableContent);
-                    }}
-                  ></i>{" "}
-                </td>
-                <td>
-                  {" "}
-                  <i
-                    class="fa-solid fa-trash-can"
-                    onClick={() => onDelete(tableContent._id)}
-                  ></i>{" "}
-                </td>
-              </tr>
-            </>
-          );
-        })}
+        </tbody>
       </table>
     </div>
   );
-}
-{
-  /* <i class="fa-solid fa-trash-can" onClick={()=>onDeleteTransaction(transaction)}></i>  */
-}
-
-{
-  /* <i class=\"fas fa-edit\" onClick={()=>{showEdit(transaction)}}></i>\n       */
 }

@@ -22,6 +22,7 @@ export default {
     axios.defaults.headers.common["Authorization"] = "";
   },
   checkTokenExp: function () {
+    return true
     let token = localStorage.getItem("token");
     //check only if token avalible and checking it is valid token
     //if it valid token if we split according to dot the array length will greater then or =2

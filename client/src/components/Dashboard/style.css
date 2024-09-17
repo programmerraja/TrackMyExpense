@@ -10,31 +10,85 @@
   min-height: 99vh;
 }
 .dashboardHeader {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
+  gap: 1rem;
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 8px;
 }
-.dashboardHeader button {
-  padding: 0.5rem;
-  width: 100px;
+
+.dateInputs {
+  display: flex;
+  gap: 1rem;
+}
+
+input[type="date"] {
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: #3acfff;
+  box-shadow: 0 0 0 3px rgba(58, 207, 255, 0.1);
+}
+
+.dashboard button {
+  background-color: #3acfff;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.dashboard button:hover {
+  background-color: #2bb8e6;
+  transform: translateY(-2px);
+}
+
+.dashboard button.secondary {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.dashboard button.secondary:hover {
+  background-color: #e0e0e0;
 }
 
 .priceCardContainer {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
 .priceCard {
-  border: 1px solid var(--primary-color);
-  padding: 0.2rem 1rem;
+  border: none;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-.priceCardTitle {
-  text-transform: uppercase;
-  margin: 0;
+.priceCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 @media (max-width: 500px) {
@@ -42,13 +96,13 @@
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
   input[type="date"],
-  button {
+  .dashboard button {
     margin: 1rem 0.2rem !important;
   }
 }
 
 /* CSS */
-button {
+.dashboard button {
   background-color: #0078d0;
   border: 0;
   border-radius: 56px;
@@ -90,13 +144,13 @@ button {
   transform: scale(1.05);
 }
 
-@media (min-width: 768px) {
-  button {
+/* @media (min-width: 768px) {
+  .dashboard button {
     padding: 16px 48px;
   }
-}
+} */
 
-input[type="date"] {
+ input[type="date"] {
   position: relative;
   padding: 1rem 3.5rem 1rem 0.75rem;
   font-size: 1rem;
@@ -151,4 +205,19 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator {
 }
 input[type="date"]:hover::-webkit-calendar-picker-indicator:hover {
   opacity: 0.15;
+}
+
+@media (max-width: 768px) {
+  .dashboardHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dateInputs {
+    flex-direction: column;
+  }
+
+  .dashboard button {
+    width: 100%;
+  }
 }

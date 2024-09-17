@@ -15,41 +15,99 @@
   flex-direction: column;
   background-color: var(--primary-color);
   padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 .fromContainer span {
   margin-bottom: 0.5rem;
+  font-weight: 500;
 }
 .fromContainer textarea,
 .fromContainer input,
 .fromContainer select {
-  border-radius: 3px;
-  height: 30px;
+  border-radius: 8px;
+  height: 40px;
   outline: none;
   background-color: white;
   color: black;
+  border: 1px solid #e0e0e0;
+  padding: 0 12px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+.fromContainer textarea:focus,
+.fromContainer input:focus,
+.fromContainer select:focus {
+  border-color: #3b82f6;
 }
 .fromContainer textarea {
-  height: 50px;
+  height: 80px;
+  padding: 12px;
 }
 
 .formBtn {
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding: 12px;
   width: 100%;
-  margin: 0.5rem 0;
+  margin: 1rem 0 0;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.formBtn:hover {
+  background-color: #2563eb;
+}
+
+.twoFrom {
+  display: flex;
+  gap: 1rem;
+}
+.twoFrom label {
+  flex: 1;
 }
 .twoFrom input {
-  margin-right: 0.2rem;
-  width: 90%;
+  width: 100%;
 }
+
 .fromCloseIcon {
-  position: fixed;
-  display: flex;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
   cursor: pointer;
-  align-items: flex-start;
-  right: 10px;
-  top: 10px;
+  border-radius: 50%;
+  padding: 0.5rem;
+  transition: background-color 0.3s ease;
 }
+.fromCloseIcon:hover {
+  background-color: #e5e7eb;
+}
+
+.addBtn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 100;
+}
+.addBtn button {
+  width: 56px;
+  height: 56px;
+  cursor: pointer;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  color: white;
+  outline: 0;
+  border: 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+.addBtn button:hover {
+  transform: scale(1.1);
+  background-color: #2563eb;
+}
+
 @media (max-width: 500px) {
   .fromContainer {
     padding: 1rem;
@@ -69,21 +127,4 @@
   .fromContainer textarea {
     height: 60px;
   }
-}
-
-.addBtn {
-  position: fixed;
-  bottom: 1%;
-  z-index: 100;
-  right: 3%;
-}
-.addBtn button {
-  width: 48px;
-  cursor: pointer;
-  height: 48px;
-  padding: 2px;
-  border-radius: 9999px;
-  background-color: rgb(37 99 235/1);
-  outline: 0;
-  border: 0;
 }

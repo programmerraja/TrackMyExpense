@@ -1,0 +1,103 @@
+.monthly-expense-graph {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  font-family: 'Arial', sans-serif;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 1rem;
+  transition: background-color 0.3s;
+  font-size: 0.9rem;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.date-range-picker {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.date-input-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.date-input-container label {
+  margin-bottom: 0.25rem;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.date-input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.chart-container {
+  height: 300px;
+  width: 100%;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 768px) {
+  .monthly-expense-graph {
+    padding: 2rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-primary {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .date-range-picker {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+
+  .date-input-container {
+    width: 48%;
+  }
+
+  .date-input-container label {
+    font-size: 1rem;
+  }
+
+  .date-input {
+    font-size: 1rem;
+  }
+
+  .chart-container {
+    height: 400px;
+    padding: 1rem;
+  }
+}

@@ -33,17 +33,17 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions }) {
     return value;
   };
 
-  console.log(state, "log");
   const handleChange = (element) => {
     setState((prevState) => ({ ...prevState, [element.id]: element.value }));
   };
 
   const onSubmit = () => {
-    const payload = {};
-    console.log(state, "stat");
-    Object.keys(state).forEach((key) => {
-      payload[key] = inputConverter(state.type, state[key], key);
-    });
+    const payload = Object.fromEntries(
+      Object.entries(state).map(([key, value]) => [
+        key,
+        inputConverter(state.type, value, key),
+      ])
+    );
 
     API.addExpense(payload)
       .then(() => {
@@ -66,104 +66,100 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions }) {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-x h-5 w-5 text-primary"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
             <path d="M18 6 6 18"></path>
             <path d="m6 6 12 12"></path>
           </svg>
         </div>
 
-        <label className="block d-flex-direction">
-          <span className="block" id="type">
-            Type
-          </span>
-          <select
-            id="type"
-            required=""
-            value={state.type}
-            onChange={(e) => handleChange(e.target)}
+        <form>
+          <label className="block">
+            <span className="block">Type</span>
+            <select
+              id="type"
+              required
+              value={state.type}
+              onChange={(e) => handleChange(e.target)}
+            >
+              {Object.values(EXPENSE_TYPE).map((type) => (
+                <option key={type} value={type}>
+                  {type.toLowerCase()}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="block">Name</span>
+            <input
+              type="text"
+              id="name"
+              value={state.name}
+              onChange={(e) => handleChange(e.target)}
+              list="options"
+            />
+            <datalist id="options">
+              {nameSuggestions &&
+                nameSuggestions.map((name) => <option key={name}>{name}</option>)}
+            </datalist>
+          </label>
+
+          <div className="twoFrom">
+            <label className="block">
+              <span className="block">Amount</span>
+              <input
+                type="number"
+                id="amount"
+                value={Math.abs(state.amount)}
+                onChange={(e) => handleChange(e.target)}
+              />
+            </label>
+
+            <label className="block">
+              <span className="block">Date</span>
+              <input
+                type="date"
+                id="eventDate"
+                value={state.eventDate}
+                onChange={(e) => handleChange(e.target)}
+              />
+            </label>
+          </div>
+
+          <label className="block">
+            <span className="block">Category</span>
+            <Category
+              id="category"
+              value={state.category}
+              onChange={(e) => handleChange(e.target)}
+            />
+          </label>
+
+          <label className="block">
+            <span className="block">Notes</span>
+            <textarea
+              id="note"
+              value={state.note}
+              onChange={(e) => handleChange(e.target)}
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={onSubmit}
+            className="formBtn"
           >
-            <option value={EXPENSE_TYPE.INCOME}>income</option>
-            <option value={EXPENSE_TYPE.EXPENSE}>expense</option>
-            <option value={EXPENSE_TYPE.INVESTMENT}>investment</option>
-            <option value={EXPENSE_TYPE.DEBT_GIVEN}>dept given</option>
-            <option value={EXPENSE_TYPE.DEBT_BOUGHT}>dept bought</option>
-          </select>
-        </label>
-
-        <label className="block d-flex-direction">
-          <span className="block text-sm font-medium text-zinc-800">Name</span>
-          <input
-            type="text"
-            value={state.name}
-            placeholder="name"
-            id="name"
-            onChange={(e) => handleChange(e.target)}
-            list="options"
-          ></input>
-          <datalist id="options">
-            {nameSuggestions &&
-              nameSuggestions.map((name) => <option>{name}</option>)}
-          </datalist>
-        </label>
-
-        <div className="d-flex twoFrom">
-          <label className="block d-flex-direction">
-            <span className="block text-sm font-medium text-zinc-800">
-              Amount
-            </span>
-            <input
-              type="number"
-              value={Math.abs(state.amount)}
-              id="amount"
-              placeholder="amount"
-              onChange={(e) => handleChange(e.target)}
-            ></input>
-          </label>
-
-          <label className="block d-flex-direction">
-            <span className="block text-sm font-medium text-zinc-800">
-              Date
-            </span>
-            <input
-              type="date"
-              id="eventDate"
-              value={state.eventDate}
-              onChange={(e) => handleChange(e.target)}
-            ></input>
-          </label>
-        </div>
-
-        <label className="block d-flex-direction">
-          <span className="block text-sm font-medium text-zinc-800">
-            Category
-          </span>
-          <Category
-            value={state.category}
-            onChange={(e) => handleChange(e.target)}
-          ></Category>
-        </label>
-
-        <label className="block d-flex-direction">
-          <span className="block text-sm font-medium text-zinc-800">Notes</span>
-          <textarea
-            id="note"
-            value={state.note}
-            onChange={(e) => handleChange(e.target)}
-          />
-        </label>
-        <div>
-          <button className="formBtn" onClick={onSubmit}>
             {propsState?.isEdit ? "Update" : "Create"}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
 }
+
 function Category({ onChange, value }) {
   return (
     <select id="category" required="" onChange={onChange}>
@@ -171,7 +167,6 @@ function Category({ onChange, value }) {
         <option value="bills" selected={value === "bills"}>
           Bills
         </option>
-        {/* <option value="education" selected={value === "education"}>Education</option> */}
         <option value="order" selected={value === "order"}>
           Online Order
         </option>
@@ -229,22 +224,23 @@ function Category({ onChange, value }) {
     </select>
   );
 }
-export function AddButton(props) {
+
+export function AddButton({ show, setShowFrom, editData, type, setAPICall, nameSuggestions }) {
   const isNew = useRef(false);
 
   useEffect(() => {
     isNew.current = false;
-  }, [props.show]);
+  }, [show]);
+
+  const handleClick = () => {
+    isNew.current = true;
+    setShowFrom((prev) => !prev);
+  };
 
   return (
-    <div>
+    <>
       <div className="addBtn">
-        <button
-          onClick={() => {
-            isNew.current = true;
-            props.setShowFrom((p) => !p);
-          }}
-        >
+        <button onClick={handleClick}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -252,43 +248,34 @@ export function AddButton(props) {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-plus h-12 w-12"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path d="M5 12h14"></path>
-            <path d="M12 5v14"></path>
+            <path d="M12 5v14M5 12h14"></path>
           </svg>
         </button>
       </div>
 
-      <div>
-        {props.show && (
-          <Form
-            setShow={() => {
-              props.setShowFrom((p) => !p);
-            }}
-            propsState={
-              !isNew.current
-                ? props.editData
-                : {
-                    type:
-                      props.type !== "DASHBOARD"
-                        ? props.type
-                        : EXPENSE_TYPE.INCOME,
-                    name: "",
-                    amount: 0,
-                    eventDate: new Date().toISOString().substring(0, 10),
-                    category: "food",
-                    note: "",
-                  }
-            }
-            setAPICall={props.setAPICall}
-            nameSuggestions={props.nameSuggestions}
-          />
-        )}
-      </div>
-    </div>
+      {show && (
+        <Form
+          setShow={() => setShowFrom((prev) => !prev)}
+          propsState={
+            !isNew.current
+              ? editData
+              : {
+                  type: type !== "DASHBOARD" ? type : EXPENSE_TYPE.INCOME,
+                  name: "",
+                  amount: 0,
+                  eventDate: new Date().toISOString().substring(0, 10),
+                  category: "food",
+                  note: "",
+                }
+          }
+          setAPICall={setAPICall}
+          nameSuggestions={nameSuggestions}
+        />
+      )}
+    </>
   );
 }

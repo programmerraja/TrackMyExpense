@@ -1,5 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import { useLocation, useParams, Link } from "react-router-dom";
 
 import SquareLoader from "../../components/SquareLoader";
 import errorHandler from "../../utils/errorHandler";
@@ -91,9 +97,7 @@ function Dashboard({ type }) {
   const queryParams = new URLSearchParams(location.search);
 
   const [apiCall, setAPICall] = useState(false);
-
   const [showForm, setShowFrom] = useState(false);
-
   const [date, setDate] = useState({
     start: queryParams.get("start")
       ? new Date(queryParams.get("start")).toISOString()
@@ -114,23 +118,45 @@ function Dashboard({ type }) {
     IS_FETCH_ALL_DATA || queryParams.get("all")
   );
 
-  const nameSuggestions =
-    tableData &&
-    tableData.data &&
-    Array.from(new Set(tableData.data.map((obj) => obj.name)));
+  const nameSuggestions = useMemo(
+    () =>
+      tableData && tableData.data
+        ? Array.from(new Set(tableData.data.map((obj) => obj.name)))
+        : [],
+    [tableData]
+  );
 
-  function onEdit(state) {
-    editDataRef.current = state;
-    editDataRef.current.isEdit = true;
+  const onEdit = useCallback((state) => {
+    editDataRef.current = { ...state, isEdit: true };
     setShowFrom(true);
-  }
+  }, []);
 
-  function onDelete(id) {
-    API.deleteExpense(id).then((res) => {
+  const onDelete = useCallback((id) => {
+    API.deleteExpense(id).then(() => {
       errorHandler(false, "done");
       setAPICall((e) => !e);
     });
-  }
+  }, []);
+
+  const handleDateChange = useCallback(
+    (key) => (e) => {
+      setDate((prevDate) => ({
+        ...prevDate,
+        [key]: new Date(e.target.value).toISOString(),
+      }));
+    },
+    []
+  );
+
+  const handleApply = useCallback(() => {
+    IS_FETCH_ALL_DATA = false;
+    setAPICall((e) => !e);
+  }, []);
+
+  const handleAll = useCallback(() => {
+    IS_FETCH_ALL_DATA = true;
+    setAPICall((e) => !e);
+  }, []);
 
   return (
     <>
@@ -146,63 +172,52 @@ function Dashboard({ type }) {
       <div className="dashboard">
         <h3>{type}</h3>
         <div className="dashboardHeader">
-          <input
-            type="date"
-            onChange={(e) =>
-              setDate({
-                ...date,
-                start: new Date(e.target.value).toISOString(),
-              })
-            }
-            value={date["start"].substring(0, 10)}
-          ></input>
-          <input
-            type="date"
-            value={date["end"].substring(0, 10)}
-            onChange={(e) =>
-              setDate({ ...date, end: new Date(e.target.value).toISOString() })
-            }
-          ></input>
-          <button
-            onClick={() => {
-              IS_FETCH_ALL_DATA = false;
-              setAPICall((e) => !e);
-            }}
-          >
-            Apply
+          <div className="dateInputs">
+            <input
+              type="date"
+              onChange={handleDateChange("start")}
+              value={date.start.substring(0, 10)}
+            />
+            <input
+              type="date"
+              value={date.end.substring(0, 10)}
+              onChange={handleDateChange("end")}
+            />
+          </div>
+          <button onClick={handleApply}>Apply Filter</button>
+          <button onClick={handleAll} className="secondary">
+            Show All
           </button>
-          <button
-            onClick={() => {
-              IS_FETCH_ALL_DATA = true;
-              setAPICall((e) => !e);
-            }}
-          >
-            all
-          </button>
+          {/* <Link to="/monthly-expense-graph" className="btn btn-primary">
+            View Monthly Expense Graph
+          </Link> */}
         </div>
-        {type === EXPENSE_TYPE.DEBT && <p>postive mean i need to give</p>}
+        {type === EXPENSE_TYPE.DEBT && <p>positive means I need to give</p>}
         <div className="priceCardContainer">
-          {dashboardData &&
-            Object.keys(dashboardData).map((key) => (
+          {type !== EXPENSE_TYPE.DASHBOARD &&
+            dashboardData &&
+            Object.entries(dashboardData).map(([key, value]) => (
               <PriceCard
+                key={key}
                 type={type}
                 title={key}
-                amount={dashboardData[key]}
+                amount={value}
                 showLink={true}
                 date={date}
               />
             ))}
         </div>
-        {tableData && tableData.data && tableData.data.length ? (
+        {type !== EXPENSE_TYPE.DASHBOARD &&
+        tableData &&
+        tableData.data &&
+        tableData.data.length ? (
           <Table
             heading={tableData.heading}
             data={tableData.data}
             onEdit={onEdit}
             onDelete={onDelete}
-          ></Table>
-        ) : (
-          <></>
-        )}
+          />
+        ) : null}
       </div>
     </>
   );
@@ -295,32 +310,42 @@ function useFeatchData(type, apiCall, date, name, category, all) {
     }
     const params = queryParams.toString();
 
-    API.getExpense(type, params).then((res) => {
-      console.log(res.data.data);
-      let temp = {};
-      if (type === EXPENSE_TYPE.DASHBOARD) {
-        temp = {
-          INCOME: 0,
-          BALANCE: 0,
-          EXPENSE: 0,
-        };
-        res.data.data.group.map((obj) => {
-          temp.BALANCE += obj.amount;
-          temp[obj._id] = obj.amount;
-        });
-      } else {
-        res.data.data.group.map((obj) => {
-          temp[obj._id] = obj.amount;
-        });
-      }
+    API.getExpense(type, params)
+      .then((res) => {
+        let temp = {};
+        if (type === EXPENSE_TYPE.DASHBOARD) {
+          temp = {
+            INCOME: 0,
+            BALANCE: 0,
+            EXPENSE: 0,
+          };
+          res.data.data.group.forEach((obj) => {
+            temp.BALANCE += obj.amount;
+            temp[obj._id] = obj.amount;
+          });
+        } else {
+          res.data.data.group.forEach((obj) => {
+            temp[obj._id] = obj.amount;
+          });
+        }
 
-      let heading = ["name", "amount", "note", "category", "type", "eventDate"];
+        const heading = [
+          "name",
+          "amount",
+          "note",
+          "category",
+          "type",
+          "eventDate",
+        ];
 
-      setTableData({ heading, data: res.data.data.content });
-
-      setDashboardData(temp);
-      setLoading(false);
-    });
+        setTableData({ heading, data: res.data.data.content });
+        setDashboardData(temp);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+      });
   }, [apiCall]);
 
   return { loading, dashboardData, tableData };
