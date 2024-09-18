@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import "./style.css";
 import API from "../../utils/API";
 import { EXPENSE_TYPE } from "../Dashboard";
-import errorHandler from "../../utils/errorHandler";
+import { useToast } from "../Toast";
 
-export function Form({ setShow, propsState, setAPICall, nameSuggestions }) {
+export function Form({ setShow, propsState, setAPICall, nameSuggestions, onEditSuccess, onEditFailure, onAddSuccess }) {
+  const { addToast } = useToast();
   const [state, setState] = useState({
     type: EXPENSE_TYPE.INCOME,
     name: "",
@@ -19,7 +20,6 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions }) {
       setState(prevState => ({
         ...prevState,
         ...propsState,
-        // Ensure eventDate is in the correct format for the date input
         eventDate: propsState.eventDate ? new Date(propsState.eventDate).toISOString().substring(0, 10) : prevState.eventDate
       }));
     }
@@ -50,13 +50,30 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions }) {
       ])
     );
 
-    API.addExpense(payload)
-      .then(() => {
-        errorHandler(false, "Done");
+    const apiCall = propsState.isEdit ? API.updateExpense : API.addExpense;
+
+    apiCall(payload)
+      .then((response) => {
+        if (propsState.isEdit) {
+          addToast("Item updated successfully", "success");
+          if (onEditSuccess) {
+            onEditSuccess(response.data);
+          }
+        } else {
+          addToast("Item added successfully", "success");
+          if (onAddSuccess) {
+            onAddSuccess(response.data);
+          }
+        }
         setShow((e) => !e);
         setAPICall((e) => !e);
       })
-      .catch((err) => errorHandler(true, "Server Error"));
+      .catch((err) => {
+        addToast(propsState.isEdit ? "Failed to update item" : "Failed to add item", "error");
+        if (propsState.isEdit && onEditFailure) {
+          onEditFailure(err);
+        }
+      });
   };
 
   return (
@@ -230,7 +247,7 @@ function Category({ onChange, value }) {
   );
 }
 
-export function AddButton({ show, setShowFrom, editData, type, setAPICall, nameSuggestions }) {
+export function AddButton({ show, setShowFrom, editData, type, setAPICall, nameSuggestions, onEditSuccess, onEditFailure, onAddSuccess }) {
   const isNew = useRef(false);
 
   useEffect(() => {
@@ -266,7 +283,7 @@ export function AddButton({ show, setShowFrom, editData, type, setAPICall, nameS
         <Form
           setShow={() => setShowFrom((prev) => !prev)}
           propsState={
-            !isNew.current
+            !isNew.current && editData
               ? {
                   ...editData,  
                   eventDate: editData.eventDate ? new Date(editData.eventDate).toISOString() : new Date().toISOString()
@@ -278,10 +295,14 @@ export function AddButton({ show, setShowFrom, editData, type, setAPICall, nameS
                   eventDate: new Date().toISOString(),
                   category: "food",
                   note: "",
+                  isEdit: false,
                 }
           }
           setAPICall={setAPICall}
           nameSuggestions={nameSuggestions}
+          onEditSuccess={onEditSuccess}
+          onEditFailure={onEditFailure}
+          onAddSuccess={onAddSuccess}
         />
       )}
     </>

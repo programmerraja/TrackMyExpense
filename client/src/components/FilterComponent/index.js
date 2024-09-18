@@ -1,7 +1,7 @@
 import React from 'react';
 import './style.css';
 
-function FilterComponent({ filters, onFilterChange, categories }) {
+function FilterComponent({ filters, onFilterChange, categories, isDebtType }) {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     let updatedValue = value;
@@ -17,15 +17,15 @@ function FilterComponent({ filters, onFilterChange, categories }) {
   return (
     <div className="filter-component">
       <select
-        name="category"
-        value={filters.category}
+        name={isDebtType ? "name" : "category"}
+        value={isDebtType ? filters.name : filters.category}
         onChange={handleInputChange}
         className="filter-select"
       >
-        <option value="">All Categories</option>
-        {categories.map((category) => (
-          <option key={category} value={category}>
-            {category}
+        <option value="">All {isDebtType ? "Names" : "Categories"}</option>
+        {categories.map((item) => (
+          <option key={item} value={item}>
+            {item}
           </option>
         ))}
       </select>

@@ -6,6 +6,7 @@ import React, {
   useCallback,
 } from "react";
 import { useLocation, useParams, Link } from "react-router-dom";
+import { useToast } from "../Toast";
 
 import SquareLoader from "../../components/SquareLoader";
 import errorHandler from "../../utils/errorHandler";
@@ -111,7 +112,7 @@ function Dashboard({ type }) {
 
   const editDataRef = useRef(undefined);
 
-  const { loading, dashboardData, tableData } = useFeatchData(
+  const { loading, dashboardData, tableData, setDashboardData, setTableData } = useFeatchData(
     type,
     apiCall,
     date,
@@ -133,12 +134,28 @@ function Dashboard({ type }) {
     setShowFrom(true);
   }, []);
 
+  const { addToast } = useToast();
+
   const onDelete = useCallback((id) => {
-    API.deleteExpense(id).then(() => {
-      errorHandler(false, "done");
-      setAPICall((e) => !e);
-    });
-  }, []);
+    API.deleteExpense(id)
+      .then(() => {
+        addToast("Item deleted successfully", "success");
+        setAPICall((e) => !e);
+      })
+      .catch((error) => {
+        addToast("Failed to delete item: " + (error.message || "Unknown error"), "error");
+      });
+  }, [addToast]);
+
+  const handleEditSuccess = useCallback(() => {
+    addToast("Item updated successfully", "success");
+    setAPICall((e) => !e);
+    setShowFrom(false);
+  }, [addToast]);
+
+  const handleEditFailure = useCallback((error) => {
+    addToast("Failed to update item: " + (error.message || "Unknown error"), "error");
+  }, [addToast]);
 
   const handleDateChange = useCallback(
     (key) => (e) => {
@@ -162,6 +179,7 @@ function Dashboard({ type }) {
 
   const [filters, setFilters] = useState({
     category: "",
+    name: "",
     minAmount: "",
     maxAmount: "",
     noteSearch: "",
@@ -175,7 +193,9 @@ function Dashboard({ type }) {
     if (!tableData || !tableData.data || type === EXPENSE_TYPE.DASHBOARD) return tableData?.data || [];
 
     return tableData.data.filter((item) => {
-      const categoryMatch = !filters.category || item.category === filters.category;
+      const categoryMatch = type === EXPENSE_TYPE.DEBT
+        ? (!filters.name || item.name === filters.name)
+        : (!filters.category || item.category === filters.category);
 
       const minAmount = filters.minAmount !== "" ? parseFloat(filters.minAmount) : null;
       const maxAmount = filters.maxAmount !== "" ? parseFloat(filters.maxAmount) : null;
@@ -195,10 +215,27 @@ function Dashboard({ type }) {
 
     let temp = {};
     filteredTableData.forEach((item) => {
-      temp[item.category] = (temp[item.category] || 0) + item.amount;
+      const key = type === EXPENSE_TYPE.DEBT ? item.name : item.category;
+      temp[key] = (temp[key] || 0) + item.amount;
     });
     return temp;
   }, [filteredTableData, type, dashboardData]);
+
+  const handleAddSuccess = useCallback((newItem) => {
+    setTableData((prevTableData) => ({
+      ...prevTableData,
+      data: [newItem, ...(prevTableData.data || [])],
+    }));
+
+    setDashboardData((prevDashboardData) => {
+      const key = type === EXPENSE_TYPE.DEBT ? newItem.name : newItem.category;
+      return {
+        ...prevDashboardData,
+        [key]: (prevDashboardData[key] || 0) + newItem.amount,
+        BALANCE: (prevDashboardData.BALANCE || 0) + newItem.amount,
+      };
+    });
+  }, [type, setTableData, setDashboardData]);
 
   return (
     <>
@@ -210,6 +247,9 @@ function Dashboard({ type }) {
         editData={editDataRef.current}
         setAPICall={setAPICall}
         nameSuggestions={nameSuggestions}
+        onEditSuccess={handleEditSuccess}
+        onEditFailure={handleEditFailure}
+        onAddSuccess={handleAddSuccess}
       />
       <div className="dashboard">
         <h3>{type}</h3>
@@ -234,7 +274,8 @@ function Dashboard({ type }) {
             <FilterComponent
               filters={filters}
               onFilterChange={handleFilterChange}
-              categories={Array.from(new Set(tableData?.data?.map(item => item.category) || []))}
+              categories={Array.from(new Set(tableData?.data?.map(item => type === EXPENSE_TYPE.DEBT ? item.name : item.category) || []))}
+              isDebtType={type === EXPENSE_TYPE.DEBT}
             />
           )}
         </div>
@@ -391,7 +432,7 @@ function useFeatchData(type, apiCall, date, name, category, all) {
       });
   }, [apiCall]);
 
-  return { loading, dashboardData, tableData };
+  return { loading, dashboardData, tableData, setDashboardData, setTableData };
 }
 
 export default Dashboard;

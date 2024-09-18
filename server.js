@@ -40,7 +40,7 @@ app.use(
   "/api/v1/expense",
   (req, res, next) => {
     // if (process.env.NODE_ENV === "development") {
-    //   req.user = { id: "123" };
+      req.user = { id: "626e428e86a0c5aa48b89bc2" };
     // }
     next();
   },
