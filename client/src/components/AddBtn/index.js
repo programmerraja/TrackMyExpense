@@ -16,7 +16,12 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions }) {
 
   useEffect(() => {
     if (Object.keys(propsState).length) {
-      setState(propsState);
+      setState(prevState => ({
+        ...prevState,
+        ...propsState,
+        // Ensure eventDate is in the correct format for the date input
+        eventDate: propsState.eventDate ? new Date(propsState.eventDate).toISOString().substring(0, 10) : prevState.eventDate
+      }));
     }
   }, [propsState]);
 
@@ -262,12 +267,15 @@ export function AddButton({ show, setShowFrom, editData, type, setAPICall, nameS
           setShow={() => setShowFrom((prev) => !prev)}
           propsState={
             !isNew.current
-              ? editData
+              ? {
+                  ...editData,  
+                  eventDate: editData.eventDate ? new Date(editData.eventDate).toISOString() : new Date().toISOString()
+                }
               : {
                   type: type !== "DASHBOARD" ? type : EXPENSE_TYPE.INCOME,
                   name: "",
                   amount: 0,
-                  eventDate: new Date().toISOString().substring(0, 10),
+                  eventDate: new Date().toISOString(),
                   category: "food",
                   note: "",
                 }

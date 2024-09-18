@@ -13,6 +13,7 @@ import API from "../../utils/API";
 import "./style.css";
 import Table from "../Table";
 import { AddButton } from "../AddBtn";
+import FilterComponent from "../FilterComponent";
 
 const IMG_WRAPPER = {
   investment: () => (
@@ -93,6 +94,7 @@ export const URL_MAPPER = {
 let IS_FETCH_ALL_DATA = false;
 
 function Dashboard({ type }) {
+  console.log("type", type);
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
 
@@ -158,6 +160,46 @@ function Dashboard({ type }) {
     setAPICall((e) => !e);
   }, []);
 
+  const [filters, setFilters] = useState({
+    category: "",
+    minAmount: "",
+    maxAmount: "",
+    noteSearch: "",
+  });
+
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilters(newFilters);
+  }, []);
+
+  const filteredTableData = useMemo(() => {
+    if (!tableData || !tableData.data || type === EXPENSE_TYPE.DASHBOARD) return tableData?.data || [];
+
+    return tableData.data.filter((item) => {
+      const categoryMatch = !filters.category || item.category === filters.category;
+
+      const minAmount = filters.minAmount !== "" ? parseFloat(filters.minAmount) : null;
+      const maxAmount = filters.maxAmount !== "" ? parseFloat(filters.maxAmount) : null;
+      
+      const amountMatch = (minAmount === null || item.amount >= minAmount) &&
+                          (maxAmount === null || item.amount <= maxAmount);
+
+      const noteMatch = !filters.noteSearch || (item.note && item.note.toLowerCase().includes(filters.noteSearch.toLowerCase()));
+
+      return categoryMatch && amountMatch && noteMatch;
+    });
+  }, [tableData, filters, type]);
+
+  const filteredDashboardData = useMemo(() => {
+    if (type === EXPENSE_TYPE.DASHBOARD) return dashboardData;
+    if (!filteredTableData.length) return {};
+
+    let temp = {};
+    filteredTableData.forEach((item) => {
+      temp[item.category] = (temp[item.category] || 0) + item.amount;
+    });
+    return temp;
+  }, [filteredTableData, type, dashboardData]);
+
   return (
     <>
       <SquareLoader loading={loading} msg={".............."} />
@@ -188,15 +230,18 @@ function Dashboard({ type }) {
           <button onClick={handleAll} className="secondary">
             Show All
           </button>
-          {/* <Link to="/monthly-expense-graph" className="btn btn-primary">
-            View Monthly Expense Graph
-          </Link> */}
+          {type !== EXPENSE_TYPE.DASHBOARD && (
+            <FilterComponent
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              categories={Array.from(new Set(tableData?.data?.map(item => item.category) || []))}
+            />
+          )}
         </div>
         {type === EXPENSE_TYPE.DEBT && <p>positive means I need to give</p>}
         <div className="priceCardContainer">
-          {type !== EXPENSE_TYPE.DASHBOARD &&
-            dashboardData &&
-            Object.entries(dashboardData).map(([key, value]) => (
+          {filteredDashboardData &&
+            Object.entries(filteredDashboardData).map(([key, value]) => (
               <PriceCard
                 key={key}
                 type={type}
@@ -208,12 +253,10 @@ function Dashboard({ type }) {
             ))}
         </div>
         {type !== EXPENSE_TYPE.DASHBOARD &&
-        tableData &&
-        tableData.data &&
-        tableData.data.length ? (
+        filteredTableData.length ? (
           <Table
             heading={tableData.heading}
-            data={tableData.data}
+            data={filteredTableData}
             onEdit={onEdit}
             onDelete={onDelete}
           />

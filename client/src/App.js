@@ -25,7 +25,7 @@ function App() {
           <Routes>
             <Route exact path={"/signin"} element={<Signin />} />
 
-            <Route exact path="/" element={<ProtectedRoute />}>
+            {/* <Route exact path="/" element={<ProtectedRoute />}> */}
               <Route
                 exact
                 path={"/"}
@@ -65,7 +65,7 @@ function App() {
                 path="/monthly-expense-graph"
                 element={<MonthlyExpenseGraph />}
               />
-            </Route>
+            {/* </Route> */}
           </Routes>
         </Router>
       </div>
