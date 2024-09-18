@@ -20,6 +20,7 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions, onEditS
       setState(prevState => ({
         ...prevState,
         ...propsState,
+        type: propsState.type === EXPENSE_TYPE.DEBT ? EXPENSE_TYPE.DEBT_BOUGHT : propsState.type,  
         eventDate: propsState.eventDate ? new Date(propsState.eventDate).toISOString().substring(0, 10) : prevState.eventDate
       }));
     }

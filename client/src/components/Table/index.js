@@ -2,6 +2,12 @@ import React from "react";
 import "./style.css";
 
 export default function Table({ heading, data, onEdit, onDelete }) {
+  const handleDelete = (id, amount, note) => {
+    if (window.confirm(`Are you sure you want to delete this item? Amount: ${amount}, Note: ${note}`)) {
+      onDelete(id);
+    }
+  };
+
   return (
     <div className="tableContainer">
       <div className="table-wrapper">
@@ -32,7 +38,7 @@ export default function Table({ heading, data, onEdit, onDelete }) {
                   ></i>
                   <i
                     className="fa-solid fa-trash-can delete-icon"
-                    onClick={() => onDelete(tableContent._id)}
+                    onClick={() => handleDelete(tableContent._id, tableContent.amount, tableContent.note)}
                     title="Delete"
                     style={{ marginLeft: '12px' }}
                   ></i>
@@ -63,7 +69,7 @@ export default function Table({ heading, data, onEdit, onDelete }) {
               ></i>
               <i
                 className="fa-solid fa-trash-can delete-icon"
-                onClick={() => onDelete(tableContent._id)}
+                onClick={() => handleDelete(tableContent._id, tableContent.amount, tableContent.note)}
                 title="Delete"
               ></i>
             </div>
