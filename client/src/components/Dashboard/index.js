@@ -266,10 +266,12 @@ function Dashboard({ type }) {
               onChange={handleDateChange("end")}
             />
           </div>
-          <button onClick={handleApply}>Apply Filter</button>
-          <button onClick={handleAll} className="secondary">
-            Show All
-          </button>
+          <div className="button-group">
+            <button onClick={handleApply}>Apply Filter</button>
+            <button onClick={handleAll} className="secondary">
+              Show All
+            </button>
+          </div>
           {type !== EXPENSE_TYPE.DASHBOARD && (
             <FilterComponent
               filters={filters}

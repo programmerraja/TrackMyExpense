@@ -58,3 +58,56 @@ td i:hover {
 .delete-icon {
   color: #f44336;
 }
+
+.table-wrapper {
+  display: block;
+}
+
+.card-wrapper {
+  display: none;
+}
+
+.card {
+  background-color:#0ab3775e;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
+}
+
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.card-heading {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  letter-spacing: 0.5px;
+}
+
+.card-content {
+  text-align: right;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.card-actions i {
+  margin-left: 16px;
+}
+
+@media screen and (max-width: 768px) {
+  .table-wrapper {
+    display: none;
+  }
+
+  .card-wrapper {
+    display: block;
+  }
+}

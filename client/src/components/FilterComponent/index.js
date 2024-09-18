@@ -6,10 +6,10 @@ function FilterComponent({ filters, onFilterChange, categories, isDebtType }) {
     const { name, value } = e.target;
     let updatedValue = value;
 
-    if (name === 'minAmount' || name === 'maxAmount') {
-      updatedValue = value === '' ? '' : parseFloat(value);
-      if (isNaN(updatedValue)) return; // Ignore non-numeric inputs
-    }
+    // if (name === 'minAmount' || name === 'maxAmount') {
+    //   updatedValue = value === '' ? '' : parseFloat(value);
+    //   if (isNaN(updatedValue)) return; // Ignore non-numeric inputs
+    // }
 
     onFilterChange({ ...filters, [name]: updatedValue });
   };
@@ -29,7 +29,7 @@ function FilterComponent({ filters, onFilterChange, categories, isDebtType }) {
           </option>
         ))}
       </select>
-      <div className="filter-input-group">
+      {/* <div className="filter-input-group">
         <input
           type="number"
           name="minAmount"
@@ -50,7 +50,7 @@ function FilterComponent({ filters, onFilterChange, categories, isDebtType }) {
           min="0"
           step="any"
         />
-      </div>
+      </div> */}
       <input
         type="text"
         name="noteSearch"
