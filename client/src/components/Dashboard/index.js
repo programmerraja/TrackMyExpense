@@ -112,14 +112,15 @@ function Dashboard({ type }) {
 
   const editDataRef = useRef(undefined);
 
-  const { loading, dashboardData, tableData, setDashboardData, setTableData } = useFeatchData(
-    type,
-    apiCall,
-    date,
-    queryParams.get("name"),
-    queryParams.get("category"),
-    IS_FETCH_ALL_DATA || queryParams.get("all")
-  );
+  const { loading, dashboardData, tableData, setDashboardData, setTableData } =
+    useFeatchData(
+      type,
+      apiCall,
+      date,
+      queryParams.get("name"),
+      queryParams.get("category"),
+      IS_FETCH_ALL_DATA || queryParams.get("all")
+    );
 
   const nameSuggestions = useMemo(
     () =>
@@ -136,16 +137,22 @@ function Dashboard({ type }) {
 
   const { addToast } = useToast();
 
-  const onDelete = useCallback((id) => {
-    API.deleteExpense(id)
-      .then(() => {
-        addToast("Item deleted successfully", "success");
-        setAPICall((e) => !e);
-      })
-      .catch((error) => {
-        addToast("Failed to delete item: " + (error.message || "Unknown error"), "error");
-      });
-  }, [addToast]);
+  const onDelete = useCallback(
+    (id) => {
+      API.deleteExpense(id)
+        .then(() => {
+          addToast("Item deleted successfully", "success");
+          setAPICall((e) => !e);
+        })
+        .catch((error) => {
+          addToast(
+            "Failed to delete item: " + (error.message || "Unknown error"),
+            "error"
+          );
+        });
+    },
+    [addToast]
+  );
 
   const handleEditSuccess = useCallback(() => {
     addToast("Item updated successfully", "success");
@@ -153,15 +160,22 @@ function Dashboard({ type }) {
     setShowFrom(false);
   }, [addToast]);
 
-  const handleEditFailure = useCallback((error) => {
-    addToast("Failed to update item: " + (error.message || "Unknown error"), "error");
-  }, [addToast]);
+  const handleEditFailure = useCallback(
+    (error) => {
+      addToast(
+        "Failed to update item: " + (error.message || "Unknown error"),
+        "error"
+      );
+    },
+    [addToast]
+  );
 
   const handleDateChange = useCallback(
     (key) => (e) => {
+      const value = new Date(e.target.value).toISOString();
       setDate((prevDate) => ({
         ...prevDate,
-        [key]: new Date(e.target.value).toISOString(),
+        [key]: value,
       }));
     },
     []
@@ -190,20 +204,28 @@ function Dashboard({ type }) {
   }, []);
 
   const filteredTableData = useMemo(() => {
-    if (!tableData || !tableData.data || type === EXPENSE_TYPE.DASHBOARD) return tableData?.data || [];
+    if (!tableData || !tableData.data || type === EXPENSE_TYPE.DASHBOARD)
+      return tableData?.data || [];
 
     return tableData.data.filter((item) => {
-      const categoryMatch = type === EXPENSE_TYPE.DEBT
-        ? (!filters.name || item.name === filters.name)
-        : (!filters.category || item.category === filters.category);
+      const categoryMatch =
+        type === EXPENSE_TYPE.DEBT
+          ? !filters.name || item.name === filters.name
+          : !filters.category || item.category === filters.category;
 
-      const minAmount = filters.minAmount !== "" ? parseFloat(filters.minAmount) : null;
-      const maxAmount = filters.maxAmount !== "" ? parseFloat(filters.maxAmount) : null;
-      
-      const amountMatch = (minAmount === null || item.amount >= minAmount) &&
-                          (maxAmount === null || item.amount <= maxAmount);
+      const minAmount =
+        filters.minAmount !== "" ? parseFloat(filters.minAmount) : null;
+      const maxAmount =
+        filters.maxAmount !== "" ? parseFloat(filters.maxAmount) : null;
 
-      const noteMatch = !filters.noteSearch || (item.note && item.note.toLowerCase().includes(filters.noteSearch.toLowerCase()));
+      const amountMatch =
+        (minAmount === null || item.amount >= minAmount) &&
+        (maxAmount === null || item.amount <= maxAmount);
+
+      const noteMatch =
+        !filters.noteSearch ||
+        (item.note &&
+          item.note.toLowerCase().includes(filters.noteSearch.toLowerCase()));
 
       return categoryMatch && amountMatch && noteMatch;
     });
@@ -221,21 +243,25 @@ function Dashboard({ type }) {
     return temp;
   }, [filteredTableData, type, dashboardData]);
 
-  const handleAddSuccess = useCallback((newItem) => {
-    setTableData((prevTableData) => ({
-      ...prevTableData,
-      data: [newItem, ...(prevTableData.data || [])],
-    }));
+  const handleAddSuccess = useCallback(
+    (newItem) => {
+      setTableData((prevTableData) => ({
+        ...prevTableData,
+        data: [newItem, ...(prevTableData.data || [])],
+      }));
 
-    setDashboardData((prevDashboardData) => {
-      const key = type === EXPENSE_TYPE.DEBT ? newItem.name : newItem.category;
-      return {
-        ...prevDashboardData,
-        [key]: (prevDashboardData[key] || 0) + newItem.amount,
-        BALANCE: (prevDashboardData.BALANCE || 0) + newItem.amount,
-      };
-    });
-  }, [type, setTableData, setDashboardData]);
+      setDashboardData((prevDashboardData) => {
+        const key =
+          type === EXPENSE_TYPE.DEBT ? newItem.name : newItem.category;
+        return {
+          ...prevDashboardData,
+          [key]: (prevDashboardData[key] || 0) + newItem.amount,
+          BALANCE: (prevDashboardData.BALANCE || 0) + newItem.amount,
+        };
+      });
+    },
+    [type, setTableData, setDashboardData]
+  );
 
   return (
     <>
@@ -276,7 +302,13 @@ function Dashboard({ type }) {
             <FilterComponent
               filters={filters}
               onFilterChange={handleFilterChange}
-              categories={Array.from(new Set(tableData?.data?.map(item => type === EXPENSE_TYPE.DEBT ? item.name : item.category) || []))}
+              categories={Array.from(
+                new Set(
+                  tableData?.data?.map((item) =>
+                    type === EXPENSE_TYPE.DEBT ? item.name : item.category
+                  ) || []
+                )
+              )}
               isDebtType={type === EXPENSE_TYPE.DEBT}
             />
           )}
@@ -295,8 +327,7 @@ function Dashboard({ type }) {
               />
             ))}
         </div>
-        {type !== EXPENSE_TYPE.DASHBOARD &&
-        filteredTableData.length ? (
+        {type !== EXPENSE_TYPE.DASHBOARD && filteredTableData.length ? (
           <Table
             heading={tableData.heading}
             data={filteredTableData}
