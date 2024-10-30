@@ -4,7 +4,15 @@ import API from "../../utils/API";
 import { EXPENSE_TYPE } from "../Dashboard";
 import { useToast } from "../Toast";
 
-export function Form({ setShow, propsState, setAPICall, nameSuggestions, onEditSuccess, onEditFailure, onAddSuccess }) {
+export function Form({
+  setShow,
+  propsState,
+  setAPICall,
+  nameSuggestions,
+  onEditSuccess,
+  onEditFailure,
+  onAddSuccess,
+}) {
   const { addToast } = useToast();
   const [state, setState] = useState({
     type: EXPENSE_TYPE.INCOME,
@@ -17,11 +25,16 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions, onEditS
 
   useEffect(() => {
     if (Object.keys(propsState).length) {
-      setState(prevState => ({
+      setState((prevState) => ({
         ...prevState,
         ...propsState,
-        type: propsState.type === EXPENSE_TYPE.DEBT ? EXPENSE_TYPE.DEBT_BOUGHT : propsState.type,  
-        eventDate: propsState.eventDate ? new Date(propsState.eventDate).toISOString().substring(0, 10) : prevState.eventDate
+        type:
+          propsState.type === EXPENSE_TYPE.DEBT
+            ? EXPENSE_TYPE.DEBT_BOUGHT
+            : propsState.type,
+        eventDate: propsState.eventDate
+          ? new Date(propsState.eventDate).toISOString().substring(0, 10)
+          : prevState.eventDate,
       }));
     }
   }, [propsState]);
@@ -51,9 +64,7 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions, onEditS
       ])
     );
 
-    const apiCall = propsState.isEdit ? API.updateExpense : API.addExpense;
-
-    apiCall(payload)
+    API.addExpense(payload)
       .then((response) => {
         if (propsState.isEdit) {
           addToast("Item updated successfully", "success");
@@ -70,7 +81,10 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions, onEditS
         setAPICall((e) => !e);
       })
       .catch((err) => {
-        addToast(propsState.isEdit ? "Failed to update item" : "Failed to add item", "error");
+        addToast(
+          propsState.isEdit ? "Failed to update item" : "Failed to add item",
+          "error"
+        );
         if (propsState.isEdit && onEditFailure) {
           onEditFailure(err);
         }
@@ -126,7 +140,9 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions, onEditS
             />
             <datalist id="options">
               {nameSuggestions &&
-                nameSuggestions.map((name) => <option key={name}>{name}</option>)}
+                nameSuggestions.map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
             </datalist>
           </label>
 
@@ -170,11 +186,7 @@ export function Form({ setShow, propsState, setAPICall, nameSuggestions, onEditS
             />
           </label>
 
-          <button
-            type="button"
-            onClick={onSubmit}
-            className="formBtn"
-          >
+          <button type="button" onClick={onSubmit} className="formBtn">
             {propsState?.isEdit ? "Update" : "Create"}
           </button>
         </form>
@@ -248,7 +260,17 @@ function Category({ onChange, value }) {
   );
 }
 
-export function AddButton({ show, setShowFrom, editData, type, setAPICall, nameSuggestions, onEditSuccess, onEditFailure, onAddSuccess }) {
+export function AddButton({
+  show,
+  setShowFrom,
+  editData,
+  type,
+  setAPICall,
+  nameSuggestions,
+  onEditSuccess,
+  onEditFailure,
+  onAddSuccess,
+}) {
   const isNew = useRef(false);
 
   useEffect(() => {
@@ -286,8 +308,10 @@ export function AddButton({ show, setShowFrom, editData, type, setAPICall, nameS
           propsState={
             !isNew.current && editData
               ? {
-                  ...editData,  
-                  eventDate: editData.eventDate ? new Date(editData.eventDate).toISOString() : new Date().toISOString()
+                  ...editData,
+                  eventDate: editData.eventDate
+                    ? new Date(editData.eventDate).toISOString()
+                    : new Date().toISOString(),
                 }
               : {
                   type: type !== "DASHBOARD" ? type : EXPENSE_TYPE.INCOME,
