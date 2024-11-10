@@ -256,6 +256,9 @@ function Category({ onChange, value }) {
       <option value="other" selected={value === "other"}>
         Others
       </option>
+      <option value="other" selected={value === "other"}>
+        Tax
+      </option>
     </select>
   );
 }

@@ -59,6 +59,10 @@ function App() {
               element={<Dashboard type={EXPENSE_TYPE.INVESTMENT} />}
             />
             <Route
+              path="/icometax"
+              element={<Dashboard type={EXPENSE_TYPE.INCOME_TAX} />}
+            />
+            <Route
               path="/monthly-expense-graph"
               element={<MonthlyExpenseGraph />}
             />

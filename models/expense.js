@@ -3,7 +3,7 @@ const { String, Number, ObjectId } = mongoose.Schema.Types;
 
 const ExpenseSchema = new mongoose.Schema({
   type: {
-    // income,expense,debt_bought,debt_given,investment
+    // income,expense,debt_bought,debt_given,investment,tax_paid
     type: String,
     required: true,
   },

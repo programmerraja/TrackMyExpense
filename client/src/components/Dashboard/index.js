@@ -81,6 +81,7 @@ export const EXPENSE_TYPE = {
   DEBT_GIVEN: "DEBT_GIVEN",
   INVESTMENT: "INVESTMENT",
   DASHBOARD: "DASHBOARD",
+  INCOME_TAX: "INCOME_TAX",
 };
 export const URL_MAPPER = {
   INCOME: "income",

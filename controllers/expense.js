@@ -9,12 +9,12 @@ const EXPENSE_TYPE = {
   DEBT_GIVEN: "DEBT_GIVEN",
   INVESTMENT: "INVESTMENT",
   DASHBOARD: "DASHBOARD",
+  INCOME_TAX: "INCOME_TAX",
 };
 
 exports.EXPENSE_TYPE = EXPENSE_TYPE;
 
-async function getData(type, basicMatchQuery, params) {
-  console.log(type, "type");
+async function getData(type, basicMatchQuery) {
   const projection = {
     name: 1,
     type: 1,
@@ -23,53 +23,23 @@ async function getData(type, basicMatchQuery, params) {
     category: 1,
     eventDate: 1,
   };
-  if (type === "DASHBOARD") {
-    const aggregation = [
+
+  const aggregations = {
+    DASHBOARD: [
       {
-        $match: basicMatchQuery,
+        $match: { ...basicMatchQuery, type: { $ne: EXPENSE_TYPE.INCOME_TAX } },
       },
       { $group: { _id: "$type", amount: { $sum: "$amount" } } },
-    ];
-
-    return { group: await Expense.aggregate(aggregation) };
-  }
-
-  if (type === EXPENSE_TYPE.INCOME) {
-    const result = {
-      total: 0,
-      content: [],
-    };
-
-    const incomeAggregation = [
+    ],
+    INCOME: [
       {
-        $match: {
-          ...basicMatchQuery,
-          type: EXPENSE_TYPE.INCOME,
-        },
+        $match: { ...basicMatchQuery, type: EXPENSE_TYPE.INCOME },
       },
       {
-        $group: {
-          _id: "$type",
-          amount: { $sum: "$amount" },
-        },
+        $group: { _id: "$type", amount: { $sum: "$amount" } },
       },
-    ];
-
-    result.group = await Expense.aggregate(incomeAggregation);
-    result.content = await Expense.find(
-      incomeAggregation[0]["$match"],
-      projection
-    );
-    return result;
-  }
-
-  if (type === EXPENSE_TYPE.DEBT) {
-    const result = {
-      content: [],
-      group: [],
-    };
-
-    const debtAggregation = [
+    ],
+    DEBT: [
       {
         $match: {
           ...basicMatchQuery,
@@ -80,81 +50,49 @@ async function getData(type, basicMatchQuery, params) {
         },
       },
       {
-        $group: {
-          _id: "$name",
-          amount: { $sum: "$amount" },
-        },
+        $group: { _id: "$name", amount: { $sum: "$amount" } },
       },
-    ];
+    ],
+    EXPENSE: [
+      {
+        $match: { ...basicMatchQuery, type: EXPENSE_TYPE.EXPENSE },
+      },
+      {
+        $group: { _id: "$category", amount: { $sum: "$amount" } },
+      },
+    ],
+    INCOME_TAX: [
+      {
+        $match: { ...basicMatchQuery, type: EXPENSE_TYPE.INCOME_TAX },
+      },
+      {
+        $group: { _id: "$category", amount: { $sum: "$amount" } },
+      },
+    ],
+    INVESTMENT: [
+      {
+        $match: { ...basicMatchQuery, type: EXPENSE_TYPE.INVESTMENT },
+      },
+      {
+        $group: { _id: "$category", amount: { $sum: "$amount" } },
+      },
+    ],
+  };
 
-    result.group = await Expense.aggregate(debtAggregation);
-    result.content = await Expense.find(
-      debtAggregation[0]["$match"],
-      projection
-    );
-
-    return result;
+  if (type === "DASHBOARD") {
+    return { group: await Expense.aggregate(aggregations[type]) };
   }
 
-  if (type === EXPENSE_TYPE.EXPENSE) {
-    const result = {
-      group: [],
-      content: [],
-    };
+  const result = {
+    group: await Expense.aggregate(aggregations[type]),
+    content: await Expense.find(aggregations[type][0]["$match"], projection),
+  };
 
-    const debtAggregation = [
-      {
-        $match: {
-          ...basicMatchQuery,
-          type: EXPENSE_TYPE.EXPENSE,
-        },
-      },
-      {
-        $group: {
-          _id: "$category",
-          amount: { $sum: "$amount" },
-        },
-      },
-    ];
-
-    result.group = await Expense.aggregate(debtAggregation);
-    result.content = await Expense.find(
-      debtAggregation[0]["$match"],
-      projection
-    );
-
-    return result;
+  if (type === EXPENSE_TYPE.INCOME) {
+    result.total = result.group.reduce((acc, curr) => acc + curr.amount, 0);
   }
 
-  if (type === EXPENSE_TYPE.INVESTMENT) {
-    const result = {
-      content: [],
-      group: [],
-    };
-
-    const debtAggregation = [
-      {
-        $match: {
-          ...basicMatchQuery,
-          type: EXPENSE_TYPE.INVESTMENT,
-        },
-      },
-      {
-        $group: {
-          _id: "$category",
-          amount: { $sum: "$amount" },
-        },
-      },
-    ];
-
-    result.group = await Expense.aggregate(debtAggregation);
-    result.content = await Expense.find(
-      debtAggregation[0]["$match"],
-      projection
-    );
-
-    return result;
-  }
+  return result;
 }
 
 exports.getExpense = async (req, res, next) => {
@@ -163,7 +101,7 @@ exports.getExpense = async (req, res, next) => {
     const endDate = req.query.end || dayjs().endOf("D").toISOString();
     const name = req.query.name;
 
-    const basicMatchQuery = {
+    let basicMatchQuery = {
       userId: req.user._id,
       eventDate: { $gte: new Date(startDate), $lte: new Date(endDate) },
     };
@@ -176,7 +114,10 @@ exports.getExpense = async (req, res, next) => {
     if (req.query.category) {
       basicMatchQuery["category"] = req.query.category.toLowerCase();
     }
-    console.log(req.query, basicMatchQuery);
+
+    if (req.query.type === EXPENSE_TYPE.INCOME_TAX) {
+      basicMatchQuery = { userId: req.user._id };
+    }
     const expenses = await getData(req.query.type, basicMatchQuery, req.query);
 
     return res.status(200).json({
@@ -184,7 +125,7 @@ exports.getExpense = async (req, res, next) => {
       data: expenses,
     });
   } catch (err) {
-    console.log(err);
+    console.log(err, "etrr");
     return res.status(500).json({
       success: false,
       error: "Server Error",
