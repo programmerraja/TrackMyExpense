@@ -80,7 +80,9 @@ async function getData(type, basicMatchQuery) {
   };
 
   if (type === "DASHBOARD") {
-    return { group: await Expense.aggregate(aggregations[type]) };
+    const query = aggregations[type];
+    query.push({ $sort: { eventDate: -1 } });
+    return { group: await Expense.aggregate(query) };
   }
 
   const result = {
