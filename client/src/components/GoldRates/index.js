@@ -61,14 +61,14 @@ const GoldRateChart = ({ goldRate }) => {
 
   const options = {
     responsive: true,
-    maintainAspectRatio: false,
+    maintainAspectRatio: true,
     plugins: {
       legend: {
         position: "bottom",
         labels: {
           usePointStyle: true,
-          boxWidth: 10,
-          padding: 10,
+          boxWidth: 8,
+          padding: 8,
           font: {
             size: 14,
             family: "'Segoe UI', sans-serif",
@@ -86,12 +86,12 @@ const GoldRateChart = ({ goldRate }) => {
       y: {
         title: {
           display: true,
-          text: "Price (₹)",
-          font: { size: 14 },
+          // text: "Price (₹)",
+          // font: { size: 14 },
         },
-        ticks: {
-          font: { size: 12 },
-        },
+        // ticks: {
+        //   font: { size: 12 },
+        // },
         grid: {
           color: "#eee",
         },
@@ -99,12 +99,12 @@ const GoldRateChart = ({ goldRate }) => {
       x: {
         title: {
           display: true,
-          text: "Date",
-          font: { size: 14 },
+          // text: "Date",
+          // font: { size: 14 },
         },
-        ticks: {
-          font: { size: 12 },
-        },
+        // ticks: {
+        //   font: { size: 12 },
+        // },
         grid: {
           color: "#f9f9f9",
         },
@@ -117,9 +117,8 @@ const GoldRateChart = ({ goldRate }) => {
       style={{
         width: "100%",
         maxWidth: "600px",
-        height: "300px",
         margin: "1rem",
-        padding: "0rem",
+        paddingTop: "1rem",
         borderRadius: "1rem",
         backgroundColor: "#fff",
         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
