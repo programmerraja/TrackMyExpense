@@ -45,18 +45,18 @@ const fetchGoldRates = async () => {
   };
 
   const dates = getArray("#goldRateDates");
-  const rates18 = getArray("#goldRate18KT");
+  // const rates18 = getArray("#goldRate18KT");
   const rates22 = getArray("#goldRate22KT");
   const rates24 = getArray("#goldRate24KT");
 
   return dates
     .map((date, index) => ({
       date,
-      gold18KT: parseFloat(rates18[index]),
+      // gold18KT: parseFloat(rates18[index]),
       gold22KT: parseFloat(rates22[index]),
       gold24KT: parseFloat(rates24[index]),
     }))
-    .slice(20);
+    .slice(10);
 };
 
 const typeStrategy = {

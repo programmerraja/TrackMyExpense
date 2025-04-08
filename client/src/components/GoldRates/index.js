@@ -26,16 +26,16 @@ const GoldRateChart = ({ goldRate }) => {
   const chartData = {
     labels: goldRate.map((entry) => entry.date),
     datasets: [
-      {
-        label: "18KT",
-        data: goldRate.map((entry) => entry.gold18KT),
-        borderColor: "#FF8C42",
-        backgroundColor: "rgba(255, 140, 66, 0.2)",
-        fill: true,
-        tension: 0.4,
-        pointRadius: 4,
-        pointBackgroundColor: "#FF8C42",
-      },
+      // {
+      //   label: "18KT",
+      //   data: goldRate.map((entry) => entry.gold18KT),
+      //   borderColor: "#FF8C42",
+      //   backgroundColor: "rgba(255, 140, 66, 0.2)",
+      //   fill: true,
+      //   tension: 0.4,
+      //   pointRadius: 4,
+      //   pointBackgroundColor: "#FF8C42",
+      // },
       {
         label: "22KT",
         data: goldRate.map((entry) => entry.gold22KT),
@@ -68,7 +68,7 @@ const GoldRateChart = ({ goldRate }) => {
         labels: {
           usePointStyle: true,
           boxWidth: 10,
-          padding: 20,
+          padding: 10,
           font: {
             size: 14,
             family: "'Segoe UI', sans-serif",
@@ -118,7 +118,7 @@ const GoldRateChart = ({ goldRate }) => {
         width: "100%",
         maxWidth: "600px",
         height: "300px",
-        margin: "2rem",
+        margin: "1rem",
         padding: "0rem",
         borderRadius: "1rem",
         backgroundColor: "#fff",

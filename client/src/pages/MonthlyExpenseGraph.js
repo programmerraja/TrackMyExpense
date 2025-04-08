@@ -90,7 +90,7 @@ function MonthlyExpenseGraph() {
   return (
     <div className="monthly-expense-graph">
       <h1>Expense Graph</h1>
-      <Link to="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
+      <Link to="/dashboard" className="btn-primary">Back to Dashboard</Link>
       <div className="date-range-picker">
         <div className="date-input-container">
           <label htmlFor="start-date">Start Date</label>

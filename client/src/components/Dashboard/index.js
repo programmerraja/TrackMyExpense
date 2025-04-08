@@ -268,7 +268,7 @@ function Dashboard({ type }) {
   return (
     <>
       <SquareLoader loading={loading} msg={".............."} />
-      <Link to="/tracking" className="btn btn-primary">
+      <Link to="/tracking" className="btn-primary">
         Tracking
       </Link>
 

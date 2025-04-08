@@ -46,20 +46,16 @@ function PriceTracking() {
   }, []);
 
   return (
-    <div className="monthly-expense-graph">
-      <h1>Price Tracking</h1>
-      <Link to="/dashboard" className="btn btn-primary">
-        Back to Dashboard
-      </Link>
+    <div className="tracking">
       {loading ? (
         <SquareLoader loading={loading} msg="Loading expenses..." />
       ) : (
-        <div className="d-flex d-flex-direction">
-          <GoldRateChart goldRate={goldRate}></GoldRateChart>
+        <>
+          _<GoldRateChart goldRate={goldRate}></GoldRateChart>
           {[...mutulaFundRate, ...stockRate].map((k) => {
             return <FolioChart folio={[k]} />;
           })}
-        </div>
+        </>
       )}
     </div>
   );

@@ -32,7 +32,7 @@ const getColor = (index) => {
     "#66CDAA",
     "#CD5C5C",
   ];
-  return colors[Math.floor(Math.random() * colors.length)] ;
+  return colors[Math.floor(Math.random() * colors.length)];
 };
 
 const formatDate = (timestamp) => {
@@ -75,7 +75,7 @@ const FolioChart = ({ folio = [] }) => {
         labels: {
           usePointStyle: true,
           boxWidth: 10,
-          padding: 20,
+          padding: 10,
           font: {
             size: 14,
             family: "'Segoe UI', sans-serif",
@@ -93,7 +93,7 @@ const FolioChart = ({ folio = [] }) => {
       y: {
         title: {
           display: true,
-          text: "NAV (₹)",
+          text: "Price (₹)",
           font: { size: 14 },
         },
         ticks: {
@@ -125,7 +125,7 @@ const FolioChart = ({ folio = [] }) => {
         width: "100%",
         maxWidth: "600px",
         height: "300px",
-        margin: "2rem auto",
+        margin: "1rem",
         padding: "0rem",
         borderRadius: "1rem",
         backgroundColor: "#fff",
