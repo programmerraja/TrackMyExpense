@@ -12,6 +12,7 @@ import Signin from "./pages/signin";
 import MonthlyExpenseGraph from "./pages/MonthlyExpenseGraph";
 import ProtectedRoute from "./utils/Route";
 import { ToastProvider } from "./components/Toast";
+import PriceTracking from "./pages/PriceTracking";
 
 import "./App.css";
 
@@ -24,49 +25,50 @@ function App() {
           <Routes>
             <Route exact path={"/signin"} element={<Signin />} />
             {/* <Route exact path="/" element={<ProtectedRoute />}> */}
-              <Route
-                exact
-                path={"/"}
-                element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
-              />
-              <Route
-                exact
-                path={"/dashboard"}
-                element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
-              />
-              <Route
-                exact
-                path={"/income"}
-                element={<Dashboard type={EXPENSE_TYPE.INCOME} />}
-              />
-              <Route
-                exact
-                path={"/expense"}
-                element={<Dashboard type={EXPENSE_TYPE.EXPENSE} />}
-              />
-              <Route
-                exact
-                path={"/debt"}
-                element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
-              />
-              <Route
-                exact
-                path={"/debt/:name"}
-                element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
-              />
-              <Route
-                exact
-                path={"/investment"}
-                element={<Dashboard type={EXPENSE_TYPE.INVESTMENT} />}
-              />
-              <Route
-                path="/icometax"
-                element={<Dashboard type={EXPENSE_TYPE.INCOME_TAX} />}
-              />
-              <Route
-                path="/monthly-expense-graph"
-                element={<MonthlyExpenseGraph />}
-              />
+            <Route
+              exact
+              path={"/"}
+              element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
+            />
+            <Route
+              exact
+              path={"/dashboard"}
+              element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
+            />
+            <Route
+              exact
+              path={"/income"}
+              element={<Dashboard type={EXPENSE_TYPE.INCOME} />}
+            />
+            <Route
+              exact
+              path={"/expense"}
+              element={<Dashboard type={EXPENSE_TYPE.EXPENSE} />}
+            />
+            <Route
+              exact
+              path={"/debt"}
+              element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
+            />
+            <Route
+              exact
+              path={"/debt/:name"}
+              element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
+            />
+            <Route
+              exact
+              path={"/investment"}
+              element={<Dashboard type={EXPENSE_TYPE.INVESTMENT} />}
+            />
+            <Route
+              path="/icometax"
+              element={<Dashboard type={EXPENSE_TYPE.INCOME_TAX} />}
+            />
+            <Route
+              path="/monthly-expense-graph"
+              element={<MonthlyExpenseGraph />}
+            />
+            <Route path="/tracking" element={<PriceTracking />} />
             {/* </Route> */}
           </Routes>
         </Router>

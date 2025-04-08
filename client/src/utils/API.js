@@ -22,7 +22,7 @@ export default {
     axios.defaults.headers.common["Authorization"] = "";
   },
   checkTokenExp: function () {
-    return true
+    return true;
     let token = localStorage.getItem("token");
     //check only if token avalible and checking it is valid token
     //if it valid token if we split according to dot the array length will greater then or =2
@@ -65,6 +65,11 @@ export default {
   },
   deleteExpense: function (id) {
     return axios.delete(`/api/v1/expense/${id}`);
+  },
+  getPriceTracking: function (type = "gold") {
+    return axios
+      .get(`/api/v1/price/track?type=${type}`)
+      .then((res) => res.data);
   },
   numberWithCommas: function (x) {
     if (x) {

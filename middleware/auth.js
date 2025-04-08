@@ -33,7 +33,7 @@ const auth = {
             if (user) {
               req.user = user;
             }
-			next()
+            next();
           }
         } else {
           res.status(400).json({
@@ -41,7 +41,8 @@ const auth = {
             msg: "You don't has access",
           });
         }
-      } catch {
+      } catch (err) {
+        console.log("ERRPR", err);
         res.status(500).json({
           status: "failed",
           msg: "server error",

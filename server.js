@@ -15,6 +15,7 @@ dotenv.config({ path: "./.env" });
 connectDB();
 
 const expense = require("./routes/expense");
+const priceTracking = require("./routes/priceTracking.js");
 
 const user = require("./routes/user");
 
@@ -39,13 +40,25 @@ app.get("/irctc", (req, res) => {
 app.use(
   "/api/v1/expense",
   (req, res, next) => {
-    // if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development") {
       req.user = { id: "626e428e86a0c5aa48b89bc2" };
-    // }
+    }
     next();
   },
   auth.isAuthenticated(),
   expense
+);
+
+app.use(
+  "/api/v1/price",
+  (req, res, next) => {
+    if (process.env.NODE_ENV === "development") {
+      req.user = { id: "626e428e86a0c5aa48b89bc2" };
+    }
+    next();
+  },
+  // auth.isAuthenticated(),
+  priceTracking
 );
 
 if (process.env.NODE_ENV === "production") {

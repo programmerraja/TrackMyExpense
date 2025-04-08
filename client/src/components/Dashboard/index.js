@@ -15,6 +15,8 @@ import "./style.css";
 import Table from "../Table";
 import { AddButton } from "../AddBtn";
 import FilterComponent from "../FilterComponent";
+import GoldRateChart from "../GoldRates";
+import FolioChart from "../StockChart";
 
 const IMG_WRAPPER = {
   investment: () => (
@@ -96,7 +98,6 @@ export const URL_MAPPER = {
 let IS_FETCH_ALL_DATA = false;
 
 function Dashboard({ type }) {
-  console.log("type", type);
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
 
@@ -267,6 +268,10 @@ function Dashboard({ type }) {
   return (
     <>
       <SquareLoader loading={loading} msg={".............."} />
+      <Link to="/tracking" className="btn btn-primary">
+        Tracking
+      </Link>
+
       <AddButton
         type={type}
         show={showForm}
