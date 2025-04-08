@@ -16,7 +16,7 @@ const buildMutualFundUrl = (id) =>
   `https://groww.in/v1/api/data/mf/web/v1/scheme/${id}/graph?benchmark=false&months=1`;
 
 const buildStockUrl = (id) =>
-  `https://groww.in/v1/api/charting_service/v2/chart/delayed/exchange/NSE/segment/CASH/${id}/monthly/v2?months=1&minimal=true`;
+  `https://groww.in/v1/api/charting_service/v2/chart/delayed/exchange/NSE/segment/CASH/${id}/monthly/v2?intervalInMinutes=30&minimal=true`;
 
 const formatMutualFundData = (_, data) => ({
   name: data["folio"]["name"],
@@ -25,7 +25,7 @@ const formatMutualFundData = (_, data) => ({
 
 const formatStockData = (name, data) => ({
   name,
-  data: data?.candles || [],
+  data: data?.candles.map((k) => [k[0] * 1000, k[1]]) || [],
 });
 
 const fetchGoldRates = async () => {
