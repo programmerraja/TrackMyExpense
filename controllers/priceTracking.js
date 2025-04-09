@@ -7,9 +7,9 @@ const MUTUALFUNDS = {
 };
 
 const STOCKS = {
-  KARNATAKA_BANK: "KTKBANK",
-  MOIL: "MOIL",
-  PVRINOX: "PVRINOX",
+  KARNATAKA_BANK_177: "KTKBANK",
+  MOIL_367: "MOIL",
+  PVRINOX_1328: "PVRINOX",
 };
 
 const buildMutualFundUrl = (id) =>
