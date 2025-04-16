@@ -10,6 +10,7 @@ const STOCKS = {
   KARNATAKA_BANK_177_30: "KTKBANK",
   MOIL_367_35: "MOIL",
   PVRINOX_1328_2: "PVRINOX",
+  NBCC_89: "NBCC",
 };
 
 const buildMutualFundUrl = (id) =>
