@@ -1,5 +1,6 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
+// TODO STORE THIS IN DB AND UI ADD OPTION TO ADD
 
 const MUTUALFUNDS = {
   QUANT_FLEXI: 120843,
@@ -11,6 +12,8 @@ const STOCKS = {
   MOIL_367_35: "MOIL",
   PVRINOX_1328_2: "PVRINOX",
   NBCC_89: "NBCC",
+  SOUTHBANK_26_80:"SOUTHBANK",
+  SUZLON_wait_55:"SUZLON"
 };
 
 const buildMutualFundUrl = (id) =>
