@@ -12,8 +12,9 @@ const STOCKS = {
   MOIL_367_35: "MOIL",
   PVRINOX_1328_2: "PVRINOX",
   NBCC_89: "NBCC",
-  SOUTHBANK_26_80:"SOUTHBANK",
-  SUZLON_wait_55:"SUZLON"
+  SOUTHBANK_26_80: "SOUTHBANK",
+  SUZLON_wait_55: "SUZLON",
+  VEDL_WAIT_400to405: "VEDL",
 };
 
 const buildMutualFundUrl = (id) =>
