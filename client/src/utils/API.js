@@ -71,6 +71,16 @@ export default {
       .get(`/api/v1/price/track?type=${type}`)
       .then((res) => res.data);
   },
+  // User stocks management
+  getUserStocks: function () {
+    return axios.get('/api/v1/price/stocks');
+  },
+  addUserStock: function (stockData) {
+    return axios.post('/api/v1/price/stocks', stockData);
+  },
+  removeUserStock: function (symbol) {
+    return axios.delete(`/api/v1/price/stocks/${symbol}`);
+  },
   numberWithCommas: function (x) {
     if (x) {
       return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");

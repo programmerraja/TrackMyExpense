@@ -26,28 +26,35 @@ export const CHART_CONFIGS = {
     title: "Gold Rate Chart",
     fields: ["gold22KT", "gold24KT"],
     colors: [
-      { borderColor: "#FFD700", backgroundColor: "rgba(255, 215, 0, 0.2)" },
-      { borderColor: "#DAA520", backgroundColor: "rgba(218, 165, 32, 0.2)" }
+      { borderColor: "#FFD700", backgroundColor: "rgba(255, 215, 0, 0.15)" },
+      { borderColor: "#DAA520", backgroundColor: "rgba(218, 165, 32, 0.15)" }
     ],
-    yAxisLabel: "Price (₹)"
+    yAxisLabel: "Price (₹)",
+    fieldLabels: {
+      "gold22KT": "Gold 22KT",
+      "gold24KT": "Gold 24KT"
+    }
   },
   silver: {
     title: "Silver Rate Chart",
     fields: ["silver10g", "silver100g"],
     colors: [
-      { borderColor: "#C0C0C0", backgroundColor: "rgba(192, 192, 192, 0.2)" },
-      { borderColor: "#A9A9A9", backgroundColor: "rgba(169, 169, 169, 0.2)" },
+      { borderColor: "#C0C0C0", backgroundColor: "rgba(192, 192, 192, 0.15)" },
+      { borderColor: "#A9A9A9", backgroundColor: "rgba(169, 169, 169, 0.15)" },
     ],
-    yAxisLabel: "Price (₹)"
+    yAxisLabel: "Price (₹)",
+    fieldLabels: {
+      "silver10g": "Silver 10g",
+      "silver100g": "Silver 100g"
+    }
   },
   currency: {
     title: "USD to INR Exchange Rate",
     fields: ["usdToInr"],
     colors: [
-      { borderColor: "#4CAF50", backgroundColor: "rgba(76, 175, 80, 0.2)" },
+      { borderColor: "#4CAF50", backgroundColor: "rgba(76, 175, 80, 0.15)" },
     ],
     yAxisLabel: "1 USD = ₹",
-    // Custom field labels for better readability in tooltips
     fieldLabels: {
       "usdToInr": "1 USD = ₹"
     }

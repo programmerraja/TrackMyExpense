@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-// const db = require("../models");
+const User = require("../models/user");
 const passport = require("../passport");
 
 const auth = {
@@ -23,7 +23,7 @@ const auth = {
     }
   },
   isAuthenticated: function () {
-    return (req, res, next) => {
+    return async (req, res, next) => {
       try {
         let token = req.headers["authorization"];
         if (token) {
@@ -31,7 +31,7 @@ const auth = {
           if (token) {
             user = jwt.verify(token, process.env.JWT_KEY);
             if (user) {
-              req.user = user;
+              req.user = await User.findById(user._id);
             }
             next();
           }

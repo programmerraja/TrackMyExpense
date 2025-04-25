@@ -1,31 +1,47 @@
 var mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-const { String,Number,ObjectId } = mongoose.Schema.Types;
+const { String, Number, ObjectId } = mongoose.Schema.Types;
+
+// Schema for user stocks
+const StockSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  symbol: {
+    type: String,
+    required: true,
+  }
+});
 
 const UserSchema = new mongoose.Schema(
   {
-    name:{
-      type:String,
-      required:true,
+    name: {
+      type: String,
+      required: true,
     },
-    email:{
-      type:String,
-      required:true,
+    email: {
+      type: String,
+      required: true,
     },
     password: {
       type: String,
-      required:true
+      required: true
     },
-    isEmailVerified:{
-      type:Boolean,
-      default:false
-    }, 
-    passwordResetToken:{
-      type:String
+    isEmailVerified: {
+      type: Boolean,
+      default: false
     },
-    passwordResetExpires:{
-      type:Date
+    passwordResetToken: {
+      type: String
+    },
+    passwordResetExpires: {
+      type: Date
+    },
+    stocks: {
+      type: [StockSchema],
+      default: []
     }
   },
   { timestamps: true }

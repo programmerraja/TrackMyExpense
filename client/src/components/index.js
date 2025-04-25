@@ -8,3 +8,5 @@ export { default as FilterComponent } from './FilterComponent';
 export { AddButton } from './AddBtn';
 export { default as Dashboard } from './Dashboard';
 export { useToast, ToastProvider } from './Toast';
+export { default as AddStockForm } from './AddStockForm';
+export { default as UserStocksList } from './UserStocksList';

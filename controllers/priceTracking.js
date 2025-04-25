@@ -1,5 +1,6 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
+const User = require("../models/user");
 // TODO STORE THIS IN DB AND UI ADD OPTION TO ADD
 
 const MUTUALFUNDS = {
@@ -176,35 +177,128 @@ const typeStrategy = {
   },
 };
 
+const fetchStockData = async (stockItems, buildUrl, formatData) => {
+  try {
+    const responses = await Promise.all(
+      Object.entries(stockItems).map(async ([name, id]) => {
+        const { data } = await axios.get(buildUrl(id));
+        return formatData(name, data);
+      })
+    );
+    return responses;
+  } catch (error) {
+    console.error("Error fetching stock data:", error);
+    return [];
+  }
+};
+
+// Get all stocks for the current user
+exports.getUserStocks = async (req, res) => {
+  return res.status(200).json(req.user.stocks || []);
+};
+
+// Add a new stock to the user's list
+exports.addUserStock = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, symbol } = req.body;
+
+    if (!name || !symbol) {
+      return res
+        .status(400)
+        .json({ error: "Stock name and symbol are required" });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if stock already exists
+    const stockExists = user.stocks.some((stock) => stock.symbol === symbol);
+    if (stockExists) {
+      return res
+        .status(400)
+        .json({ error: "Stock already exists in your list" });
+    }
+
+    // Add the new stock
+    user.stocks.push({ name, symbol });
+    await user.save();
+
+    return res.status(201).json(user.stocks);
+  } catch (error) {
+    console.error("Error adding user stock:", error);
+    return res.status(500).json({ error: "Failed to add stock" });
+  }
+};
+
+// Remove a stock from the user's list
+exports.removeUserStock = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { symbol } = req.params;
+
+    if (!symbol) {
+      return res.status(400).json({ error: "Stock symbol is required" });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Remove the stock
+    user.stocks = user.stocks.filter((stock) => stock.symbol !== symbol);
+    await user.save();
+
+    return res.status(200).json(user.stocks);
+  } catch (error) {
+    console.error("Error removing user stock:", error);
+    return res.status(500).json({ error: "Failed to remove stock" });
+  }
+};
+
 exports.getPriceTracking = async (req, res) => {
   const type = req.query.type;
 
   const strategy = typeStrategy[type];
 
   if (!strategy) {
-    return res
-      .status(400)
-      .json({
-        error:
-          "Invalid type. Use 'mutual', 'stock', 'gold', 'silver', or 'currency'",
-      });
+    return res.status(400).json({
+      error:
+        "Invalid type. Use 'mutual', 'stock', 'gold', 'silver', or 'currency'",
+    });
   }
 
   try {
     if (strategy.isScraper) {
-      const goldRates = await strategy.fetchData();
-      return res.status(200).json(goldRates);
+      const scrapedData = await strategy.fetchData();
+      return res.status(200).json(scrapedData);
     }
 
     const { items, buildUrl, formatData } = strategy;
 
-    const responses = await Promise.all(
-      Object.entries(items).map(async ([name, id]) => {
-        const { data } = await axios.get(buildUrl(id));
-        return formatData(name, data);
-      })
-    );
+    if (type === "stock" && req.user && req.user.id) {
+      if (req.user && req.user.stocks && req.user.stocks.length > 0) {
+        const combinedStockItems = { ...items };
 
+        req.user.stocks.forEach((stock) => {
+          combinedStockItems[stock.name] = stock.symbol;
+        });
+
+        const allStockResponses = await fetchStockData(
+          combinedStockItems,
+          buildUrl,
+          formatData
+        );
+        return res.status(200).json(allStockResponses);
+      }
+    }
+
+    const responses = await fetchStockData(items, buildUrl, formatData);
     return res.status(200).json(responses);
   } catch (error) {
     console.error(`[${type.toUpperCase()}] Fetch error:`, error);
