@@ -5,75 +5,17 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import { useLocation, useParams, Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useToast } from "../Toast";
 
-import SquareLoader from "../../components/SquareLoader";
-import errorHandler from "../../utils/errorHandler";
+import {
+  SquareLoader,
+  Table,
+  AddButton,
+  FilterComponent
+} from "..";
 import API from "../../utils/API";
 import "./style.css";
-import Table from "../Table";
-import { AddButton } from "../AddBtn";
-import FilterComponent from "../FilterComponent";
-import GoldRateChart from "../GoldRates";
-import FolioChart from "../StockChart";
-
-const IMG_WRAPPER = {
-  investment: () => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      class="lucide lucide-piggy-bank absolute right-3 top-1 h-4 w-4"
-    >
-      <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2h0V5z"></path>
-      <path d="M2 9v1c0 1.1.9 2 2 2h1"></path>
-      <path d="M16 11h0"></path>
-    </svg>
-  ),
-  income: () => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      class="lucide lucide-banknote absolute right-3 top-1 h-4 w-4"
-      data-state="closed"
-    >
-      <rect width="20" height="12" x="2" y="6" rx="2"></rect>
-      <circle cx="12" cy="12" r="2"></circle>
-      <path d="M6 12h.01M18 12h.01"></path>
-    </svg>
-  ),
-  balance: () => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      class="lucide lucide-wallet2 absolute right-3 top-1 h-4 w-4"
-    >
-      <path d="M17 14h.01"></path>
-      <path d="M7 7h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14"></path>
-    </svg>
-  ),
-};
 
 export const EXPENSE_TYPE = {
   INCOME: "INCOME",

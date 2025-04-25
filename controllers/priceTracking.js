@@ -64,6 +64,91 @@ const fetchGoldRates = async () => {
     .slice(10);
 };
 
+const fetchSilverRates = async () => {
+  const { data } = await axios.get(
+    "https://www.thehindubusinessline.com/silver-rate-today/Chennai/",
+    {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US,en;q=0.9,ta-IN;q=0.8,ta;q=0.7",
+        "cache-control": "no-cache",
+        dnt: "1",
+        pragma: "no-cache",
+        priority: "u=0, i",
+        "sec-ch-ua":
+          '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Linux"',
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
+      },
+    }
+  );
+  const $ = cheerio.load(data);
+  // Select the third table with the class "table table-balance-sheet"
+  const table = $(".table.table-balance-sheet").eq(2);
+  const rows = table.find("tbody tr");
+
+  const result = [];
+
+  rows.each((i, row) => {
+    const cols = $(row).find("td");
+    if (cols.length >= 4) {
+      result.push({
+        date: $(cols[0]).text().trim(),
+        silver10g: $(cols[1]).text().trim(),
+        silver100g: $(cols[2]).text().trim(),
+        // silver1kg: $(cols[3]).clone().children().remove().end().text().trim(), // remove span and just get price
+      });
+    }
+  });
+
+  return result;
+};
+
+const fetchCurrencyRates = async () => {
+  try {
+    const { data } = await axios.get(
+      "https://wise.com/rates/history+live?source=INR&target=USD&length=30&resolution=daily&unit=day",
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        },
+      }
+    );
+
+    return data.map((item) => {
+      const date = new Date(item.time).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+
+      // Format the flipped rate to show 1 USD = x INR with 2 decimal places
+      const flippedRate = item.value > 0 ? (1 / item.value).toFixed(2) : 0;
+
+      return {
+        date,
+        usdToInr: flippedRate,
+        inrToUsd: item.value,
+        source: item.source,
+        target: item.target,
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching currency rates:", error);
+    return [];
+  }
+};
+
 const typeStrategy = {
   mutual: {
     items: MUTUALFUNDS,
@@ -81,6 +166,14 @@ const typeStrategy = {
     isScraper: true,
     fetchData: fetchGoldRates,
   },
+  silver: {
+    isScraper: true,
+    fetchData: fetchSilverRates,
+  },
+  currency: {
+    isScraper: true,
+    fetchData: fetchCurrencyRates,
+  },
 };
 
 exports.getPriceTracking = async (req, res) => {
@@ -91,7 +184,10 @@ exports.getPriceTracking = async (req, res) => {
   if (!strategy) {
     return res
       .status(400)
-      .json({ error: "Invalid type. Use 'mutual', 'stock', or 'gold'" });
+      .json({
+        error:
+          "Invalid type. Use 'mutual', 'stock', 'gold', 'silver', or 'currency'",
+      });
   }
 
   try {
@@ -111,7 +207,7 @@ exports.getPriceTracking = async (req, res) => {
 
     return res.status(200).json(responses);
   } catch (error) {
-    console.error(`[${type.toUpperCase()}] Fetch error:`, error.message);
+    console.error(`[${type.toUpperCase()}] Fetch error:`, error);
     return res.status(500).json({ error: "Failed to fetch price data" });
   }
 };
