@@ -1,5 +1,4 @@
 import React from 'react';
-import './style.css';
 
 const StockCard = ({ stock, onRemove }) => {
   const { symbol, name, price, change, changePercent } = stock;
