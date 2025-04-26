@@ -57,7 +57,7 @@ app.use(
     }
     next();
   },
-  // auth.isAuthenticated(),
+  auth.isAuthenticated(),
   priceTracking
 );
 

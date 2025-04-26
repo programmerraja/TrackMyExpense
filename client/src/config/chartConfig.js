@@ -37,15 +37,15 @@ export const CHART_CONFIGS = {
   },
   silver: {
     title: "Silver Rate Chart",
-    fields: ["silver10g", "silver100g"],
+    fields: ["silver1g"],
     colors: [
       { borderColor: "#C0C0C0", backgroundColor: "rgba(192, 192, 192, 0.15)" },
       { borderColor: "#A9A9A9", backgroundColor: "rgba(169, 169, 169, 0.15)" },
     ],
     yAxisLabel: "Price (₹)",
     fieldLabels: {
-      "silver10g": "Silver 10g",
-      "silver100g": "Silver 100g"
+      "silver1g": "Silver 1g",
+      // "silver100g": "Silver 100g"
     }
   },
   currency: {

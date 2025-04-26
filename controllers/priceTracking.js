@@ -102,10 +102,14 @@ const fetchSilverRates = async () => {
   rows.each((i, row) => {
     const cols = $(row).find("td");
     if (cols.length >= 4) {
+      console.log(parseInt($(cols[1]).text().trim().trim().replace("₹", "").replaceAll(",", ""))/10);
       result.push({
         date: $(cols[0]).text().trim(),
-        silver10g: $(cols[1]).text().trim(),
-        silver100g: $(cols[2]).text().trim(),
+        silver1g:
+          parseInt(
+            $(cols[1]).text().trim().replace("₹", "").replaceAll(",", "")
+          ) / 10,
+        // silver100g: $(cols[2]).text().trim(),
         // silver1kg: $(cols[3]).clone().children().remove().end().text().trim(), // remove span and just get price
       });
     }
