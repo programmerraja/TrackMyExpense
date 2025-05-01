@@ -60,7 +60,7 @@ const fetchGoldRates = async () => {
       date,
       // gold18KT: parseFloat(rates18[index]),
       gold22KT: parseFloat(rates22[index]),
-      gold24KT: parseFloat(rates24[index]),
+      // gold24KT: parseFloat(rates24[index]),
     }))
     .slice(10);
 };

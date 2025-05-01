@@ -24,7 +24,7 @@ export const DEFAULT_COLORS = [
 export const CHART_CONFIGS = {
   gold: {
     title: "Gold Rate Chart",
-    fields: ["gold22KT", "gold24KT"],
+    fields: ["gold22KT"],
     colors: [
       { borderColor: "#FFD700", backgroundColor: "rgba(255, 215, 0, 0.15)" },
       { borderColor: "#DAA520", backgroundColor: "rgba(218, 165, 32, 0.15)" }
@@ -32,7 +32,7 @@ export const CHART_CONFIGS = {
     yAxisLabel: "Price (₹)",
     fieldLabels: {
       "gold22KT": "Gold 22KT",
-      "gold24KT": "Gold 24KT"
+      // "gold24KT": "Gold 24KT"
     }
   },
   silver: {
