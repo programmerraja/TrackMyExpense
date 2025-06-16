@@ -62,8 +62,8 @@ app.use(
 );
 
 if (process.env.NODE_ENV === "production") {
-  app.use("/new/*", express.static(path.join(__dirname, "newclient/dist")));
-  app.get("/new/*", (req, res) => {
+  app.use("/new", express.static(path.join(__dirname, "newClient/dist")));
+  app.get("/new/home", (req, res) => {
     res.sendFile(path.resolve(__dirname, "newClient", "dist", "index.html"));
   });
 

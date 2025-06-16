@@ -1,7 +1,5 @@
-import { ThemeProvider } from "@/components/theme-provider";
-import { BrowserRouter as Router } from "react-router-dom";
-import pkg from "../package.json";
 
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,11 +16,12 @@ import { DebtTracker } from "@/components/debt/DebtTracker";
 import { InvestmentTracker } from "@/components/investment/InvestmentTracker";
 import { LiveMarket } from "@/components/market/LiveMarket";
 
+
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -30,17 +29,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
+  
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-
+  
   return <>{children}</>;
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -48,11 +47,11 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
+  
   if (user) {
     return <Navigate to="/" replace />;
   }
-
+  
   return <>{children}</>;
 };
 
@@ -64,34 +63,32 @@ const App = () => {
           <Toaster />
           <Sonner />
           <AuthProvider>
-            <Router basename={pkg.homepage}>
-              <Routes>
-                <Route
-                  path="/auth"
-                  element={
-                    <PublicRoute>
-                      <Auth />
-                    </PublicRoute>
-                  }
-                />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<DashboardSummary />} />
-                  <Route path="income" element={<IncomeTracker />} />
-                  <Route path="expenses" element={<ExpenseTracker />} />
-                  <Route path="debts" element={<DebtTracker />} />
-                  <Route path="investments" element={<InvestmentTracker />} />
-                  <Route path="market" element={<LiveMarket />} />
-                  <Route path="settings" element={<Settings />} />
-                </Route>
-              </Routes>
-            </Router>
+            <Routes>
+              <Route
+                path="/auth"
+                element={
+                  <PublicRoute>
+                    <Auth />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<DashboardSummary />} />
+                <Route path="/income" element={<IncomeTracker />} />
+                <Route path="/expenses" element={<ExpenseTracker />} />
+                <Route path="/debts" element={<DebtTracker />} />
+                <Route path="/investments" element={<InvestmentTracker />} />
+                <Route path="/market" element={<LiveMarket />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+            </Routes>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
