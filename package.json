@@ -10,7 +10,9 @@
     "client": "cd client && npm run start",
     "seed": " node scripts/Seeds.js",
     "install2": "cd client && npm install && npm run build",
+    "install3": "cd newClient && npm install && npm run build",
     "build2": "cd admin && npm install && npm run build "
+    
   },
   "author": "boopathi",
   "license": "MIT",

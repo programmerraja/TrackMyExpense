@@ -41,7 +41,7 @@ function PriceTracking() {
   const fetchPriceData = useCallback(() => {
     setLoading(true);
     Promise.all(
-      DATA_TYPES.map((type) =>
+      ["gold", "silver", "mutual", "stock", "currency"].map((type) =>
         API.getPriceTracking(type)
           .then((data) => ({ type, data }))
           .catch((error) => {
