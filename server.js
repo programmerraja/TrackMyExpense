@@ -64,7 +64,7 @@ app.use(
 if (process.env.NODE_ENV === "production") {
   app.use("/new", express.static(path.join(__dirname, "newclient/dist")));
   app.get("/new/*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "newclient", "dist", "index.html"));
+    res.sendFile(path.resolve(__dirname, "newClient", "dist", "index.html"));
   });
 
   // Serve main client from root path
