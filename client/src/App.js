@@ -13,6 +13,7 @@ import MonthlyExpenseGraph from "./pages/MonthlyExpenseGraph";
 import ProtectedRoute from "./utils/Route";
 import { ToastProvider } from "./components/Toast";
 import PriceTracking from "./pages/PriceTracking";
+import BankStatement from "./pages/BankStatement";
 
 import "./App.css";
 
@@ -69,6 +70,7 @@ function App() {
               element={<MonthlyExpenseGraph />}
             />
             <Route path="/tracking" element={<PriceTracking />} />
+            <Route path="/bank-statement" element={<BankStatement />} />
             {/* </Route> */}
           </Routes>
         </Router>

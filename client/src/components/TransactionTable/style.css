@@ -1,0 +1,275 @@
+.transaction-table {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+  color:black !important;
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+}
+
+.table-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.table-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-select-all {
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.btn-select-all:hover {
+  background-color: #0a9d6b;
+}
+
+.table-container {
+  overflow-x: auto;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+
+
+.transactions-table th {
+  background-color: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 8px;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.transactions-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #dee2e6;
+  color:black ;
+  vertical-align: top;
+}
+
+.transactions-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.transactions-table tbody tr.selected {
+  background-color: #e3f2fd;
+}
+
+.col-select {
+  width: 40px;
+  text-align: center;
+}
+
+.col-date {
+  width: 100px;
+  white-space: nowrap;
+}
+
+.col-narration {
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.narration-text {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  display: block;
+  word-wrap: break-word;
+}
+
+.narration-text:hover {
+  background-color: #e9ecef;
+}
+
+.narration-edit {
+  width: 100%;
+  padding: 4px 8px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.narration-edit:focus {
+  border-color: #0a9d6b;
+  box-shadow: 0 0 0 2px rgba(10, 157, 107, 0.25);
+}
+
+.col-type {
+  width: 80px;
+  text-align: center;
+}
+
+.col-amount {
+  width: 120px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.col-amount.debit {
+  color: #dc3545;
+}
+
+.col-amount.credit {
+  color: #28a745;
+}
+
+.col-balance {
+  width: 120px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.col-actions {
+  width: 80px;
+  text-align: center;
+}
+
+.btn-add-expense {
+  padding: 4px 8px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.btn-add-expense:hover {
+  background-color: #0a9d6b;
+}
+
+
+.transaction-table-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+}
+
+.transaction-table-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.transaction-table-loading p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.transaction-table-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+}
+
+.transaction-table-empty p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 1rem;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .table-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .table-actions {
+    justify-content: center;
+  }
+  
+ 
+  
+  .transactions-table th,
+  .transactions-table td {
+    padding: 8px 4px;
+  }
+  
+  .col-narration {
+    min-width: 150px;
+    max-width: 200px;
+  }
+  
+  .col-actions {
+    width: 60px;
+  }
+  
+  .btn-add-expense {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .col-balance {
+    display: none;
+  }
+  
+  .col-type {
+    width: 50px;
+  }
+  
+  .col-amount {
+    width: 80px;
+  }
+  
+  .col-actions {
+    width: 50px;
+  }
+  
+  .btn-add-expense {
+    padding: 2px 4px;
+    font-size: 0.65rem;
+  }
+}
