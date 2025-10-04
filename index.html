@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Averaging Calculator</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            max-width: 500px;
+            margin: auto;
+        }
+
+        input {
+            margin: 5px 0;
+            width: 100%;
+            padding: 8px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+        }
+
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Stock Averaging Calculator</h2>
+
+    <label>Shares Already Bought:</label>
+    <input type="number" id="oldShares" placeholder="e.g., 35">
+
+    <label>Old Buy Price (₹):</label>
+    <input type="number" id="oldPrice" placeholder="e.g., 367">
+
+    <label>Current Market Price (₹):</label>
+    <input type="number" id="currentPrice" placeholder="e.g., 315">
+
+    <label>Target Price to Sell (₹):</label>
+    <input type="number" id="targetPrice" placeholder="e.g., 400">
+
+    <button onclick="calculate()">Calculate</button>
+
+    <div class="result" id="output"></div>
+
+    <script>
+        function calculate() {
+            const oldShares = parseFloat(document.getElementById("oldShares").value);
+            const oldPrice = parseFloat(document.getElementById("oldPrice").value);
+            const currentPrice = parseFloat(document.getElementById("currentPrice").value);
+            const targetPrice = parseFloat(document.getElementById("targetPrice").value);
+
+            const oldInvestment = oldShares * oldPrice;
+
+            // Solve inequality: (oldInvestment + currentPrice * x) / (oldShares + x) < targetPrice
+            const numeratorDiff = (targetPrice * oldShares) - oldInvestment;
+            const denominatorDiff = targetPrice - currentPrice;
+
+            if (denominatorDiff <= 0) {
+                document.getElementById("output").innerHTML = "⚠️ No point averaging — current price is above target!";
+                return;
+            }
+
+            const x = Math.ceil(numeratorDiff / denominatorDiff); // Round up to next full share
+
+            // New average
+            const newTotalInvestment = oldInvestment + (x * currentPrice);
+            const newTotalShares = oldShares + x;
+            const newAvg = newTotalInvestment / newTotalShares;
+
+            // Potential profit if stock reaches target
+            const potentialProfit = (targetPrice * newTotalShares) - newTotalInvestment;
+
+            document.getElementById("output").innerHTML = `
+        ➕ You need to buy at least <b>${x} shares</b> at ₹${currentPrice}<br>
+        📉 New average price: ₹${newAvg.toFixed(2)}<br>
+        💰 Estimated profit at ₹${targetPrice}: ₹${potentialProfit.toFixed(2)}
+      `;
+        }
+    </script>
+</body>
+
+</html>
