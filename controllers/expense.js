@@ -87,7 +87,7 @@ async function getData(type, basicMatchQuery) {
 
   const result = {
     group: await Expense.aggregate(aggregations[type]),
-    content: await Expense.find(aggregations[type][0]["$match"], projection),
+    content: await Expense.find(aggregations[type][0]["$match"], projection).sort({ eventDate: -1 }),
   };
 
   if (type === EXPENSE_TYPE.INCOME) {
