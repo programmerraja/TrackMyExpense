@@ -3,23 +3,23 @@
   width: 100%;
   max-width: 100%;
   margin: 0 0 1.5rem;
-  padding: 1rem;
+  padding: 1.25rem;
   border-radius: 12px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background-color: var(--secondary-color-light);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  border: 1px solid #f0f0f0;
-  color: #212529;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--font-color);
 }
 
 .price-chart-container:hover,
 .folio-chart-container:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary-color);
 }
 
 .chart-wrapper {
-  height: 200px;
+  height: 220px;
   width: 100%;
   position: relative;
   padding: 0;
@@ -30,50 +30,51 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .chart-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #212529;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--font-color);
   margin: 0;
 }
 
 .chart-subtitle {
   font-size: 12px;
-  color: #6c757d;
+  color: rgba(255, 255, 255, 0.5);
   margin-top: 2px;
 }
 
 .chart-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .legend-item:hover {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .legend-item.active {
-  background-color: rgba(0, 0, 0, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .legend-item.inactive {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .legend-color {
@@ -84,38 +85,19 @@
 }
 
 .legend-label {
-  font-size: 12px;
-  color: #212529;
-  font-weight: 500;
-}
-
-.selected-point-info {
-  background-color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.point-date {
-  font-size: 12px;
-  color: #6c757d;
-  margin-bottom: 2px;
-}
-
-.point-value {
-  font-size: 14px;
+  font-size: 11px;
+  color: var(--font-color);
   font-weight: 600;
 }
 
 /* Grid layout for charts */
 .charts-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
-  gap: 20px !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 24px !important;
   width: 100% !important;
   align-items: stretch !important;
+  margin-top: 20px;
 }
 
 .charts-grid > div {
@@ -123,78 +105,24 @@
 }
 
 /* Responsive styles */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .charts-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
-    gap: 15px !important;
-  }
-
-  .price-chart-container,
-  .folio-chart-container {
-    margin: 0 0 1rem;
-    padding: 0.75rem;
-  }
-
-  .chart-wrapper {
-    height: 180px;
-  }
-
-  .chart-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .chart-legend {
-    margin-top: 8px;
-    justify-content: flex-start;
-    width: 100%;
-  }
-
-  .legend-item {
-    padding: 2px 6px;
-    margin-top: 5px;
-  }
-
-  .legend-label {
-    font-size: 11px;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .charts-grid {
     grid-template-columns: 1fr !important;
+    gap: 16px !important;
   }
 
   .price-chart-container,
   .folio-chart-container {
-    margin: 0 0 0.75rem;
-    padding: 0.75rem;
-    border-radius: 0.75rem;
+    padding: 1rem;
   }
 
   .chart-wrapper {
-    height: 160px;
-  }
-
-  .chart-legend {
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-
-  .legend-item {
-    padding: 2px 5px;
-    font-size: 10px;
-  }
-
-  .selected-point-info {
-    padding: 6px 10px;
-  }
-
-  .point-date {
-    font-size: 11px;
-  }
-
-  .point-value {
-    font-size: 13px;
+    height: 200px;
   }
 }

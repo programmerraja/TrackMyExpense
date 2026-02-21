@@ -19,7 +19,7 @@ ChartJS.register(
   LinearScale,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 );
 
 const getColor = (index) => {
@@ -34,7 +34,10 @@ const getColor = (index) => {
     "#CD5C5C",
   ];
   // Use the index if provided, otherwise use a random color
-  return colors[index % colors.length] || colors[Math.floor(Math.random() * colors.length)];
+  return (
+    colors[index % colors.length] ||
+    colors[Math.floor(Math.random() * colors.length)]
+  );
 };
 
 const formatDate = (timestamp) => {
@@ -47,12 +50,14 @@ const formatDate = (timestamp) => {
 };
 
 const formatPrice = (price) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
     maximumFractionDigits: 2,
-    minimumFractionDigits: 2
-  }).format(price).replace('₹', '₹ ');
+    minimumFractionDigits: 2,
+  })
+    .format(price)
+    .replace("₹", "₹ ");
 };
 
 const FolioChart = ({ folio = [] }) => {
@@ -98,7 +103,7 @@ const FolioChart = ({ folio = [] }) => {
       const previousValue = folio[0].data[folio[0].data.length - 2][1];
       return {
         amount: currentValue - previousValue,
-        percent: ((currentValue - previousValue) / previousValue) * 100
+        percent: ((currentValue - previousValue) / previousValue) * 100,
       };
     }
     return { amount: 0, percent: 0 };
@@ -119,7 +124,7 @@ const FolioChart = ({ folio = [] }) => {
         titleFont: {
           size: 12,
           family: "'Poppins', 'Segoe UI', sans-serif",
-          weight: 'bold'
+          weight: "bold",
         },
         bodyFont: {
           size: 11,
@@ -128,17 +133,17 @@ const FolioChart = ({ folio = [] }) => {
         padding: 8,
         cornerRadius: 4,
         callbacks: {
-          label: function(context) {
-            let label = context.dataset.label || '';
+          label: function (context) {
+            let label = context.dataset.label || "";
             if (label) {
-              label += ': ';
+              label += ": ";
             }
             if (context.parsed.y !== null) {
               label += formatPrice(context.parsed.y);
             }
             return label;
-          }
-        }
+          },
+        },
       },
     },
     scales: {
@@ -148,24 +153,24 @@ const FolioChart = ({ folio = [] }) => {
           display: false,
         },
         grid: {
-          color: "rgba(0, 0, 0, 0.05)",
+          color: "rgba(255, 255, 255, 0.1)",
           drawBorder: false,
         },
         ticks: {
           padding: 4,
           font: {
             size: 10,
-            family: "'Poppins', 'Segoe UI', sans-serif",
+            family: "'Lato', sans-serif",
           },
-          color: '#6c757d',
+          color: "rgba(255, 255, 255, 0.7)",
           maxTicksLimit: 5,
-          callback: function(value) {
-            return value.toLocaleString('en-IN');
-          }
+          callback: function (value) {
+            return value.toLocaleString("en-IN");
+          },
         },
         border: {
           display: false,
-        }
+        },
       },
       x: {
         display: true,
@@ -180,14 +185,14 @@ const FolioChart = ({ folio = [] }) => {
           padding: 4,
           font: {
             size: 9,
-            family: "'Poppins', 'Segoe UI', sans-serif",
+            family: "'Lato', sans-serif",
           },
-          color: '#6c757d',
+          color: "rgba(255, 255, 255, 0.7)",
           maxRotation: 0,
           minRotation: 0,
           autoSkip: true,
           maxTicksLimit: 6,
-        }
+        },
       },
     },
     layout: {
@@ -195,8 +200,8 @@ const FolioChart = ({ folio = [] }) => {
         left: 0,
         right: 0,
         top: 5,
-        bottom: 0
-      }
+        bottom: 0,
+      },
     },
   };
 
@@ -208,9 +213,15 @@ const FolioChart = ({ folio = [] }) => {
           <p className="chart-subtitle">Stock Performance</p>
         </div>
         <div>
-          <div className="stock-price">₹{latestValue.toLocaleString('en-IN')}</div>
-          <div className={`stock-change ${isPositive ? 'positive' : 'negative'}`}>
-            {isPositive ? '+' : ''}{change.amount.toFixed(2)} ({isPositive ? '+' : ''}{change.percent.toFixed(2)}%)
+          <div className="stock-price">
+            ₹{latestValue.toLocaleString("en-IN")}
+          </div>
+          <div
+            className={`stock-change ${isPositive ? "positive" : "negative"}`}
+          >
+            {isPositive ? "+" : ""}
+            {change.amount.toFixed(2)} ({isPositive ? "+" : ""}
+            {change.percent.toFixed(2)}%)
           </div>
         </div>
       </div>

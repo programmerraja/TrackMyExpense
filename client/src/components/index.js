@@ -11,3 +11,6 @@ export { useToast, ToastProvider } from "./Toast";
 export { default as AddStockForm } from "./AddStockForm";
 export { default as UserStocksList } from "./UserStocksList";
 export { default as ImportForm } from "./ImportForm";
+export { default as StockCard } from "./StockCard";
+export { default as StockForm } from "./StockForm";
+export { default as TradeForm } from "./TradeForm";

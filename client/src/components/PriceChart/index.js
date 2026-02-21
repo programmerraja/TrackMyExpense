@@ -19,7 +19,7 @@ ChartJS.register(
   LinearScale,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 );
 
 const extractNumericValue = (value) => {
@@ -34,12 +34,14 @@ const extractNumericValue = (value) => {
 };
 
 const formatPrice = (price) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
     maximumFractionDigits: 2,
-    minimumFractionDigits: 2
-  }).format(price).replace('₹', '₹ ');
+    minimumFractionDigits: 2,
+  })
+    .format(price)
+    .replace("₹", "₹ ");
 };
 
 const PriceChart = ({
@@ -57,8 +59,8 @@ const PriceChart = ({
     fields.length > 0
       ? fields
       : data && data.length > 0
-      ? Object.keys(data[0]).filter((key) => key !== labels && key !== "date")
-      : [];
+        ? Object.keys(data[0]).filter((key) => key !== labels && key !== "date")
+        : [];
 
   // Initialize active datasets with all fields
   useEffect(() => {
@@ -66,11 +68,11 @@ const PriceChart = ({
   }, [dataFields]);
 
   const toggleDataset = (field) => {
-    setActiveDatasets(prev => {
+    setActiveDatasets((prev) => {
       if (prev.includes(field)) {
         // If it's the only active dataset, don't remove it
         if (prev.length === 1) return prev;
-        return prev.filter(f => f !== field);
+        return prev.filter((f) => f !== field);
       } else {
         return [...prev, field];
       }
@@ -80,7 +82,7 @@ const PriceChart = ({
   const chartData = {
     labels: data.map((entry) => entry[labels]),
     datasets: dataFields
-      .filter(field => activeDatasets.includes(field))
+      .filter((field) => activeDatasets.includes(field))
       .map((field) => {
         const colorIndex = dataFields.indexOf(field) % colors.length;
         return {
@@ -95,11 +97,11 @@ const PriceChart = ({
           borderWidth: 2,
           pointHoverRadius: 5,
           pointHoverBackgroundColor: colors[colorIndex].borderColor,
-          pointHoverBorderColor: '#ffffff',
+          pointHoverBorderColor: "#ffffff",
           pointHoverBorderWidth: 2,
-          pointStyle: 'circle',
+          pointStyle: "circle",
           lineTension: 0.4,
-          cubicInterpolationMode: 'monotone',
+          cubicInterpolationMode: "monotone",
         };
       }),
   };
@@ -119,7 +121,7 @@ const PriceChart = ({
         titleFont: {
           size: 12,
           family: "'Poppins', 'Segoe UI', sans-serif",
-          weight: 'bold'
+          weight: "bold",
         },
         bodyFont: {
           size: 11,
@@ -131,17 +133,17 @@ const PriceChart = ({
         boxPadding: 3,
         usePointStyle: true,
         callbacks: {
-          label: function(context) {
-            let label = context.dataset.label || '';
+          label: function (context) {
+            let label = context.dataset.label || "";
             if (label) {
-              label += ': ';
+              label += ": ";
             }
             if (context.parsed.y !== null) {
               label += formatPrice(context.parsed.y);
             }
             return label;
-          }
-        }
+          },
+        },
       },
     },
     scales: {
@@ -151,24 +153,24 @@ const PriceChart = ({
           display: false,
         },
         grid: {
-          color: "rgba(0, 0, 0, 0.05)",
+          color: "rgba(255, 255, 255, 0.1)",
           drawBorder: false,
         },
         ticks: {
           padding: 4,
           font: {
             size: 10,
-            family: "'Poppins', 'Segoe UI', sans-serif",
+            family: "'Lato', sans-serif",
           },
-          color: '#6c757d',
+          color: "rgba(255, 255, 255, 0.7)",
           maxTicksLimit: 5,
-          callback: function(value) {
-            return value.toLocaleString('en-IN');
-          }
+          callback: function (value) {
+            return value.toLocaleString("en-IN");
+          },
         },
         border: {
           display: false,
-        }
+        },
       },
       x: {
         display: true,
@@ -183,14 +185,14 @@ const PriceChart = ({
           padding: 4,
           font: {
             size: 9,
-            family: "'Poppins', 'Segoe UI', sans-serif",
+            family: "'Lato', sans-serif",
           },
-          color: '#6c757d',
+          color: "rgba(255, 255, 255, 0.7)",
           maxRotation: 0,
           minRotation: 0,
           autoSkip: true,
           maxTicksLimit: 6,
-        }
+        },
       },
     },
     elements: {
@@ -204,20 +206,20 @@ const PriceChart = ({
         hoverRadius: 4,
         borderWidth: 2,
         hoverBorderWidth: 1,
-      }
+      },
     },
     layout: {
       padding: {
         left: 0,
         right: 0,
         top: 5,
-        bottom: 0
-      }
+        bottom: 0,
+      },
     },
     animation: {
       duration: 800,
-      easing: 'easeOutQuart'
-    }
+      easing: "easeOutQuart",
+    },
   };
 
   // Get the latest values for each dataset to display
@@ -225,7 +227,7 @@ const PriceChart = ({
     const result = {};
     if (data.length > 0) {
       const latestEntry = data[data.length - 1];
-      dataFields.forEach(field => {
+      dataFields.forEach((field) => {
         result[field] = extractNumericValue(latestEntry[field]);
       });
     }
@@ -244,7 +246,7 @@ const PriceChart = ({
       label: fieldLabels[field] || field,
       color: colors[colorIndex].borderColor,
       value: latestValues[field],
-      isActive
+      isActive,
     };
   });
 
@@ -259,7 +261,7 @@ const PriceChart = ({
           {legendItems.map((item, i) => (
             <div
               key={i}
-              className={`legend-item ${item.isActive ? 'active' : 'inactive'}`}
+              className={`legend-item ${item.isActive ? "active" : "inactive"}`}
               onClick={() => toggleDataset(item.field)}
             >
               <span

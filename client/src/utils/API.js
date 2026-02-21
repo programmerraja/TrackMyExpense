@@ -86,6 +86,16 @@ export default {
   removeUserStock: function (symbol) {
     return axios.delete(`/api/v1/price/stocks/${symbol}`);
   },
+  // Portfolio management
+  getHoldings: function () {
+    return axios.get("/api/v1/price/portfolio/holdings");
+  },
+  getTransactions: function () {
+    return axios.get("/api/v1/price/portfolio/transactions");
+  },
+  addTransaction: function (txData) {
+    return axios.post("/api/v1/price/portfolio/transactions", txData);
+  },
   numberWithCommas: function (x) {
     if (x) {
       return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
