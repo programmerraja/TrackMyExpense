@@ -13,7 +13,8 @@ const passport = require("./passport");
 dotenv.config({ path: "./.env" });
 
 connectDB();
-
+// only for runnin local so dont remove it
+process.env.NODE_ENV = "development";
 const expense = require("./routes/expense");
 const priceTracking = require("./routes/priceTracking.js");
 
@@ -41,24 +42,42 @@ app.use(
   "/api/v1/expense",
   (req, res, next) => {
     if (process.env.NODE_ENV === "development") {
-      req.user = { id: "626e428e86a0c5aa48b89bc2" };
+      req.user = {
+        id: "626e428e86a0c5aa48b89bc2",
+        _id: "626e428e86a0c5aa48b89bc2",
+      };
+      return next();
     }
     next();
   },
-  auth.isAuthenticated(),
-  expense
+  (req, res, next) => {
+    if (process.env.NODE_ENV === "development") {
+      return next();
+    }
+    auth.isAuthenticated()(req, res, next);
+  },
+  expense,
 );
 
 app.use(
   "/api/v1/price",
   (req, res, next) => {
     if (process.env.NODE_ENV === "development") {
-      req.user = { id: "626e428e86a0c5aa48b89bc2" };
+      req.user = {
+        id: "626e428e86a0c5aa48b89bc2",
+        _id: "626e428e86a0c5aa48b89bc2",
+      };
+      return next();
     }
     next();
   },
-  auth.isAuthenticated(),
-  priceTracking
+  (req, res, next) => {
+    if (process.env.NODE_ENV === "development") {
+      return next();
+    }
+    auth.isAuthenticated()(req, res, next);
+  },
+  priceTracking,
 );
 
 if (process.env.NODE_ENV === "production") {
@@ -79,6 +98,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(
   PORT,
   console.log(
-    `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold
-  )
+    `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow
+      .bold,
+  ),
 );

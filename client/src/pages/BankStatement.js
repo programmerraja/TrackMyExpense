@@ -5,6 +5,8 @@ import BankStatementDashboard from "../components/BankStatementDashboard";
 import TransactionTable from "../components/TransactionTable";
 import TransactionFilters from "../components/TransactionFilters";
 import StatementCharts from "../components/StatementCharts";
+import { ImportForm, SquareLoader } from "../components";
+import { useToast } from "../components/Toast";
 import "./BankStatement.css";
 
 const BankStatement = () => {
@@ -39,7 +41,11 @@ const BankStatement = () => {
     setErrorState,
     clearError,
     loadStatementData,
+    importTransactions,
+    importStatus,
   } = useBankStatement(currentStatementId);
+
+  const { addToast } = useToast();
 
   const handleFileUpload = useCallback(
     (file) => {
@@ -48,7 +54,7 @@ const BankStatement = () => {
       setCurrentStatementId(newStatement.id);
       setLoadingState(true);
     },
-    [createNewStatement, clearError, setLoadingState]
+    [createNewStatement, clearError, setLoadingState],
   );
 
   const handleFileProcessed = useCallback(
@@ -57,7 +63,7 @@ const BankStatement = () => {
       setLoadingState(false);
       updateStatementStatus("completed");
     },
-    [setStatementTransactions, setLoadingState, updateStatementStatus]
+    [setStatementTransactions, setLoadingState, updateStatementStatus],
   );
 
   const handleFileError = useCallback(
@@ -65,21 +71,21 @@ const BankStatement = () => {
       setErrorState(errorMessage);
       updateStatementStatus("failed", errorMessage);
     },
-    [setErrorState, updateStatementStatus]
+    [setErrorState, updateStatementStatus],
   );
 
   const handleTransactionUpdate = useCallback(
     (transactionId, updates) => {
       updateTransaction(transactionId, updates);
     },
-    [updateTransaction]
+    [updateTransaction],
   );
 
   const handleTransactionSelect = useCallback(
     (transactionId) => {
       toggleTransactionSelection(transactionId);
     },
-    [toggleTransactionSelection]
+    [toggleTransactionSelection],
   );
 
   const handleSelectAll = useCallback(() => {
@@ -95,7 +101,7 @@ const BankStatement = () => {
 
     // Get selected transaction data
     const selectedTxnData = transactions.filter((txn) =>
-      selectedTransactions.includes(txn.id)
+      selectedTransactions.includes(txn.id),
     );
 
     setSelectedTransactionsForExpense(selectedTxnData);
@@ -106,7 +112,7 @@ const BankStatement = () => {
     (newFilters) => {
       updateFilters(newFilters);
     },
-    [updateFilters]
+    [updateFilters],
   );
 
   const handleClearFilters = useCallback(() => {
@@ -117,7 +123,7 @@ const BankStatement = () => {
     (newSettings) => {
       updateChartSettings(newSettings);
     },
-    [updateChartSettings]
+    [updateChartSettings],
   );
 
   const handleNewUpload = useCallback(() => {
@@ -132,46 +138,31 @@ const BankStatement = () => {
     setSelectedTransactionsForExpense([]);
   }, []);
 
-  // If expense form should be shown, we'll need to integrate with existing expense form
-  // For now, we'll show a placeholder
   if (showExpenseForm) {
     return (
       <div className="bank-statement-page">
-        <div className="expense-form-placeholder">
-          <h2>Add to Expense Tracking</h2>
-          <p>Selected transactions: {selectedTransactionsForExpense.length}</p>
-          <div className="selected-transactions-preview">
-            {selectedTransactionsForExpense.map((txn) => (
-              <div key={txn.id} className="transaction-preview">
-                <span className="txn-date">
-                  {new Date(txn.transactionDate).toLocaleDateString()}
-                </span>
-                <span className="txn-narration">{txn.narration}</span>
-                <span className="txn-amount">
-                  ₹{txn.debitAmount > 0 ? txn.debitAmount : txn.creditAmount}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="expense-form-actions">
-            <button className="btn-cancel" onClick={handleCloseExpenseForm}>
-              Cancel
-            </button>
-            <button
-              className="btn-continue"
-              onClick={() => {
-                // TODO: Open existing expense form with pre-filled data
-                console.log(
-                  "Opening expense form with data:",
-                  selectedTransactionsForExpense
+        <ImportForm
+          transactions={selectedTransactionsForExpense}
+          importStatus={importStatus}
+          onCancel={handleCloseExpenseForm}
+          onImport={(mappedExpenses) => {
+            importTransactions(mappedExpenses, (results) => {
+              if (results.errors.length === 0) {
+                addToast(
+                  `Successfully imported ${results.success} items!`,
+                  "success",
                 );
                 handleCloseExpenseForm();
-              }}
-            >
-              Continue to Expense Form
-            </button>
-          </div>
-        </div>
+                handleNewUpload(); // Reset to allow more uploads or go back to results
+              } else {
+                addToast(
+                  `Imported ${results.success} items with ${results.errors.length} errors`,
+                  "warning",
+                );
+              }
+            });
+          }}
+        />
       </div>
     );
   }

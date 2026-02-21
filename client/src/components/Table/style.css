@@ -1,64 +1,98 @@
+/* ── Table Container ── */
 .tableContainer {
   overflow-x: auto;
-  box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 12px;
   background-color: var(--secondary-color-light);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 1rem;
 }
 
+/* ── Desktop Table ── */
 table {
-  font-family: 'Lato', sans-serif;
+  font-family: "Lato", sans-serif;
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
   color: var(--font-color);
-  table-layout: fixed;
 }
 
-th, td {
+th,
+td {
   text-align: left;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   word-wrap: break-word;
-  max-width: 200px; /* Adjust this value as needed */
 }
 
 th {
   background-color: var(--secondary-color);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.9em;
-  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.7);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+th:first-child {
+  border-radius: 12px 0 0 0;
+}
+
+th:last-child {
+  border-radius: 0 12px 0 0;
 }
 
 tr:last-child td {
   border-bottom: none;
 }
 
-tr:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+tbody tr {
+  transition: background-color 0.2s ease;
 }
 
+tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Action Icons ── */
 td i {
   cursor: pointer;
-  transition: color 0.3s ease;
+  transition: all 0.2s ease;
+  padding: 6px;
+  border-radius: 6px;
 }
 
 td i:hover {
-  color: var(--primary-color);
-}
-
-.edit-icon, .delete-icon {
-  font-size: 1.2em;
+  transform: scale(1.15);
 }
 
 .edit-icon {
-  color: #4caf50;
+  color: #4ade80;
+  font-size: 1.1em;
+}
+
+.edit-icon:hover {
+  background-color: rgba(74, 222, 128, 0.12);
+}
+
+.recurringBadge {
+  margin-left: 6px;
+  font-size: 0.85em;
+  cursor: help;
 }
 
 .delete-icon {
-  color: #f44336;
+  color: #f87171;
+  font-size: 1.1em;
 }
 
+.delete-icon:hover {
+  background-color: rgba(248, 113, 113, 0.12);
+}
+
+/* ── Desktop / Mobile Toggle ── */
 .table-wrapper {
   display: block;
 }
@@ -67,47 +101,90 @@ td i:hover {
   display: none;
 }
 
+/* ── Mobile Cards ── */
 .card {
-  background-color:#0ab3775e;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    135deg,
+    rgba(10, 179, 119, 0.12) 0%,
+    rgba(10, 179, 119, 0.06) 100%
+  );
+  border: 1px solid rgba(10, 179, 119, 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.card:active {
+  transform: scale(0.98);
 }
 
 .card-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  padding: 6px 0;
+  gap: 0.5rem;
+}
+
+.card-row + .card-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .card-heading {
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.9em;
-  letter-spacing: 0.5px;
+  font-size: 0.7rem;
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 80px;
+  flex-shrink: 0;
 }
 
 .card-content {
   text-align: right;
+  font-size: 0.9rem;
+  word-break: break-word;
+  color: var(--font-color);
 }
 
 .card-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .card-actions i {
-  margin-left: 16px;
+  font-size: 1.2em;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
+.card-actions .edit-icon:hover {
+  background-color: rgba(74, 222, 128, 0.15);
+}
+
+.card-actions .delete-icon:hover {
+  background-color: rgba(248, 113, 113, 0.15);
+}
+
+/* ── Responsive Breakpoints ── */
 @media screen and (max-width: 768px) {
   .table-wrapper {
     display: none;
   }
 
   .card-wrapper {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.5rem;
   }
 }

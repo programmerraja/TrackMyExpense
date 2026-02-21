@@ -7,6 +7,10 @@ router
   .get(ExpenseController.getExpense)
   .post(ExpenseController.addExpense);
 
+router.route("/recurring").post(ExpenseController.processRecurring);
+
+router.route("/search").get(ExpenseController.searchExpense);
+
 router.route("/:id").post(ExpenseController.editExpense);
 
 router.route("/:id").delete(ExpenseController.deleteExpense);

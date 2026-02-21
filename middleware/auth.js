@@ -29,7 +29,7 @@ const auth = {
         if (token) {
           token = token.split("Bearer ")[1];
           if (token) {
-            user = jwt.verify(token, process.env.JWT_KEY);
+            const user = jwt.verify(token, process.env.JWT_KEY);
             if (user) {
               req.user = await User.findById(user._id);
             }

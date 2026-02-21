@@ -22,7 +22,6 @@ export default {
     axios.defaults.headers.common["Authorization"] = "";
   },
   checkTokenExp: function () {
-    return true;
     let token = localStorage.getItem("token");
     //check only if token avalible and checking it is valid token
     //if it valid token if we split according to dot the array length will greater then or =2
@@ -66,6 +65,12 @@ export default {
   deleteExpense: function (id) {
     return axios.delete(`/api/v1/expense/${id}`);
   },
+  processRecurring: function () {
+    return axios.post(`/api/v1/expense/recurring`);
+  },
+  searchExpense: function (query) {
+    return axios.get(`/api/v1/expense/search?q=${query}`);
+  },
   getPriceTracking: function (type = "gold") {
     return axios
       .get(`/api/v1/price/track?type=${type}`)
@@ -73,10 +78,10 @@ export default {
   },
   // User stocks management
   getUserStocks: function () {
-    return axios.get('/api/v1/price/stocks');
+    return axios.get("/api/v1/price/stocks");
   },
   addUserStock: function (stockData) {
-    return axios.post('/api/v1/price/stocks', stockData);
+    return axios.post("/api/v1/price/stocks", stockData);
   },
   removeUserStock: function (symbol) {
     return axios.delete(`/api/v1/price/stocks/${symbol}`);

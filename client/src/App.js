@@ -14,67 +14,73 @@ import ProtectedRoute from "./utils/Route";
 import { ToastProvider } from "./components/Toast";
 import PriceTracking from "./pages/PriceTracking";
 import BankStatement from "./pages/BankStatement";
+import Search from "./pages/Search";
+import API from "./utils/API";
 
 import "./App.css";
 
 function App() {
+  const isAuthenticated = API.isAuth();
+
   return (
     <ToastProvider>
-      <SideNav />
-      <div className="appSideContent">
-        <Router>
+      <Router>
+        {isAuthenticated && <SideNav />}
+        <div className={isAuthenticated ? "appSideContent" : ""}>
           <Routes>
-            <Route exact path={"/signin"} element={<Signin />} />
-            {/* <Route exact path="/" element={<ProtectedRoute />}> */}
-            <Route
-              exact
-              path={"/"}
-              element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
-            />
-            <Route
-              exact
-              path={"/dashboard"}
-              element={<Dashboard type={EXPENSE_TYPE.DASHBOARD} />}
-            />
-            <Route
-              exact
-              path={"/income"}
-              element={<Dashboard type={EXPENSE_TYPE.INCOME} />}
-            />
-            <Route
-              exact
-              path={"/expense"}
-              element={<Dashboard type={EXPENSE_TYPE.EXPENSE} />}
-            />
-            <Route
-              exact
-              path={"/debt"}
-              element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
-            />
-            <Route
-              exact
-              path={"/debt/:name"}
-              element={<Dashboard type={EXPENSE_TYPE.DEBT} />}
-            />
-            <Route
-              exact
-              path={"/investment"}
-              element={<Dashboard type={EXPENSE_TYPE.INVESTMENT} />}
-            />
-            <Route
-              path="/icometax"
-              element={<Dashboard type={EXPENSE_TYPE.INCOME_TAX} />}
-            />
-            <Route
-              path="/monthly-expense-graph"
-              element={<MonthlyExpenseGraph />}
-            />
-            <Route path="/tracking" element={<PriceTracking />} />
-            <Route path="/bank-statement" element={<BankStatement />} />
-            {/* </Route> */}
+            <Route path="/signin" element={<Signin />} />
+            <Route element={<ProtectedRoute />}>
+              <Route
+                path="/"
+                element={<Dashboard key="home" type={EXPENSE_TYPE.DASHBOARD} />}
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <Dashboard key="dashboard" type={EXPENSE_TYPE.DASHBOARD} />
+                }
+              />
+              <Route
+                path="/income"
+                element={<Dashboard key="income" type={EXPENSE_TYPE.INCOME} />}
+              />
+              <Route
+                path="/expense"
+                element={
+                  <Dashboard key="expense" type={EXPENSE_TYPE.EXPENSE} />
+                }
+              />
+              <Route
+                path="/debt"
+                element={<Dashboard key="debt" type={EXPENSE_TYPE.DEBT} />}
+              />
+              <Route
+                path="/debt/:name"
+                element={<Dashboard key="debt-name" type={EXPENSE_TYPE.DEBT} />}
+              />
+              <Route
+                path="/investment"
+                element={
+                  <Dashboard key="investment" type={EXPENSE_TYPE.INVESTMENT} />
+                }
+              />
+              <Route
+                path="/incometax"
+                element={
+                  <Dashboard key="incometax" type={EXPENSE_TYPE.INCOME_TAX} />
+                }
+              />
+              <Route
+                path="/monthly-expense-graph"
+                element={<MonthlyExpenseGraph />}
+              />
+              <Route path="/tracking" element={<PriceTracking />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/bank-statement" element={<BankStatement />} />
+            </Route>
           </Routes>
-        </Router>
-      </div>
+        </div>
+      </Router>
     </ToastProvider>
   );
 }

@@ -19,7 +19,7 @@ const userStrategy = new LocalStrategy(
       }
       return done(null, user);
     });
-  }
+  },
 );
 
 const adminStrategy = new LocalStrategy(
@@ -39,7 +39,7 @@ const adminStrategy = new LocalStrategy(
       }
       return done(null, user);
     });
-  }
+  },
 );
 
 strategy = { userStrategy, adminStrategy };

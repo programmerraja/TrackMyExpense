@@ -21,7 +21,35 @@ export function Form({
     eventDate: new Date().toISOString().substring(0, 10),
     category: "food",
     note: "",
+    isRecurring: false,
+    recurringFrequency: "monthly",
   });
+  const [errors, setErrors] = useState({});
+
+  const TYPE_DISPLAY = {
+    INCOME: "Income",
+    EXPENSE: "Expense",
+    DEBT_BOUGHT: "Debt (Bought)",
+    DEBT_GIVEN: "Debt (Given)",
+    INVESTMENT: "Investment",
+    INCOME_TAX: "Income Tax",
+  };
+
+  // Types that can be selected when adding new entries
+  const SELECTABLE_TYPES = [
+    EXPENSE_TYPE.INCOME,
+    EXPENSE_TYPE.EXPENSE,
+    EXPENSE_TYPE.DEBT_BOUGHT,
+    EXPENSE_TYPE.DEBT_GIVEN,
+    EXPENSE_TYPE.INVESTMENT,
+    EXPENSE_TYPE.INCOME_TAX,
+  ];
+
+  // Whether the type is locked (opened from a specific page, not dashboard)
+  const isTypeLocked =
+    propsState.type &&
+    propsState.type !== EXPENSE_TYPE.DASHBOARD &&
+    !propsState.isEdit;
 
   useEffect(() => {
     if (Object.keys(propsState).length) {
@@ -54,14 +82,38 @@ export function Form({
 
   const handleChange = (element) => {
     setState((prevState) => ({ ...prevState, [element.id]: element.value }));
+    // Clear error for this field on change
+    if (errors[element.id]) {
+      setErrors((prev) => ({ ...prev, [element.id]: null }));
+    }
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!state.name || !state.name.trim()) {
+      newErrors.name = "Name is required";
+    }
+    if (!state.amount || Number(state.amount) === 0) {
+      newErrors.amount = "Amount must be greater than 0";
+    }
+    if (!state.eventDate) {
+      newErrors.eventDate = "Date is required";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const onSubmit = () => {
+    if (!validate()) {
+      addToast("Please fix the errors before submitting", "error");
+      return;
+    }
+
     const payload = Object.fromEntries(
       Object.entries(state).map(([key, value]) => [
         key,
         inputConverter(state.type, value, key),
-      ])
+      ]),
     );
 
     API.addExpense(payload)
@@ -83,7 +135,7 @@ export function Form({
       .catch((err) => {
         addToast(
           propsState.isEdit ? "Failed to update item" : "Failed to add item",
-          "error"
+          "error",
         );
         if (propsState.isEdit && onEditFailure) {
           onEditFailure(err);
@@ -92,8 +144,8 @@ export function Form({
   };
 
   return (
-    <div className="pfixed">
-      <div className="fromContainer">
+    <div className="pfixed" onClick={() => setShow((e) => !e)}>
+      <div className="fromContainer" onClick={(e) => e.stopPropagation()}>
         <div className="fromCloseIcon">
           <svg
             onClick={() => setShow((e) => !e)}
@@ -112,6 +164,10 @@ export function Form({
           </svg>
         </div>
 
+        <h3 className="formTitle">
+          {propsState?.isEdit ? "Edit Entry" : "New Entry"}
+        </h3>
+
         <form>
           <label className="block">
             <span className="block">Type</span>
@@ -120,10 +176,14 @@ export function Form({
               required
               value={state.type}
               onChange={(e) => handleChange(e.target)}
+              disabled={isTypeLocked}
+              style={
+                isTypeLocked ? { opacity: 0.6, cursor: "not-allowed" } : {}
+              }
             >
-              {Object.values(EXPENSE_TYPE).map((type) => (
+              {SELECTABLE_TYPES.map((type) => (
                 <option key={type} value={type}>
-                  {type.toLowerCase()}
+                  {TYPE_DISPLAY[type] || type}
                 </option>
               ))}
             </select>
@@ -134,10 +194,13 @@ export function Form({
             <input
               type="text"
               id="name"
+              placeholder="e.g. Grocery, Rent, Salary..."
               value={state.name}
               onChange={(e) => handleChange(e.target)}
               list="options"
+              className={errors.name ? "fieldError" : ""}
             />
+            {errors.name && <span className="errorText">{errors.name}</span>}
             <datalist id="options">
               {nameSuggestions &&
                 nameSuggestions.map((name) => (
@@ -152,9 +215,15 @@ export function Form({
               <input
                 type="number"
                 id="amount"
-                value={Math.abs(state.amount)}
+                placeholder="0"
+                value={Math.abs(state.amount) || ""}
                 onChange={(e) => handleChange(e.target)}
+                min="0"
+                className={errors.amount ? "fieldError" : ""}
               />
+              {errors.amount && (
+                <span className="errorText">{errors.amount}</span>
+              )}
             </label>
 
             <label className="block">
@@ -164,6 +233,7 @@ export function Form({
                 id="eventDate"
                 value={state.eventDate}
                 onChange={(e) => handleChange(e.target)}
+                className={errors.eventDate ? "fieldError" : ""}
               />
             </label>
           </div>
@@ -177,10 +247,40 @@ export function Form({
             />
           </label>
 
+          <div className="recurringToggle">
+            <label className="toggleLabel">
+              <input
+                type="checkbox"
+                checked={state.isRecurring}
+                onChange={(e) =>
+                  setState((prev) => ({
+                    ...prev,
+                    isRecurring: e.target.checked,
+                  }))
+                }
+              />
+              <span className="toggleSwitch"></span>
+              <span>Recurring</span>
+            </label>
+            {state.isRecurring && (
+              <select
+                id="recurringFrequency"
+                value={state.recurringFrequency}
+                onChange={(e) => handleChange(e.target)}
+                className="frequencySelect"
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            )}
+          </div>
+
           <label className="block">
-            <span className="block">Notes</span>
+            <span className="block">Notes (optional)</span>
             <textarea
               id="note"
+              placeholder="Add details..."
               value={state.note}
               onChange={(e) => handleChange(e.target)}
             />
@@ -197,71 +297,37 @@ export function Form({
 
 function Category({ onChange, value }) {
   return (
-    <select id="category" required="" onChange={onChange}>
+    <select id="category" required="" value={value} onChange={onChange}>
       <optgroup label="Expenses">
-        <option value="bills" selected={value === "bills"}>
-          Bills
-        </option>
-        <option value="order" selected={value === "order"}>
-          Online Order
-        </option>
-        <option value="rent" selected={value === "rent"}>
-          Rent
-        </option>
-        <option value="home" selected={value === "home"}>
-          home
-        </option>
-        <option value="food" selected={value === "food"}>
-          Food
-        </option>
-        <option value="medical" selected={value === "medical"}>
-          Medical
-        </option>
+        <option value="bills">Bills</option>
+        <option value="order">Online Order</option>
+        <option value="rent">Rent</option>
+        <option value="home">Home</option>
+        <option value="food">Food</option>
+        <option value="medical">Medical</option>
       </optgroup>
       <optgroup label="Leisure">
-        <option value="entertainment" selected={value === "entertainment"}>
-          Entertainment
-        </option>
-        <option value="shopping" selected={value === "shopping"}>
-          Shopping
-        </option>
-        <option value="travel" selected={value === "travel"}>
-          Travel
-        </option>
-        <option value="sports" selected={value === "sports"}>
-          Sports
-        </option>
+        <option value="entertainment">Entertainment</option>
+        <option value="shopping">Shopping</option>
+        <option value="travel">Travel</option>
+        <option value="sports">Sports</option>
       </optgroup>
       <optgroup label="Payments">
-        <option value="debt" selected={value === "debt"}>
-          Debt
-        </option>
+        <option value="debt">Debt</option>
+        <option value="friends">Friends</option>
       </optgroup>
-      <optgroup label="income">
-        <option value="salary" selected={value === "salary"}>
-          salary
-        </option>
-        <option value="savings" selected={value === "savings"}>
-          stock
-        </option>
+      <optgroup label="Income">
+        <option value="salary">Salary</option>
+        <option value="savings">Savings</option>
       </optgroup>
-      <optgroup label="investment">
-        <option value="stock" selected={value === "stock"}>
-          stock
-        </option>
-        <option value="post office" selected={value === "post office"}>
-          post office
-        </option>
+      <optgroup label="Investment">
+        <option value="stock">Stock</option>
+        <option value="post office">Post Office</option>
       </optgroup>
-      <option value="other" selected={value === "other"}>
-        Others
-      </option>
-       <option value="other" selected={value === "freinds"}>
-        Freinds
-      </option>
-      <option value="other" selected={value === "other"}>
-        Tax
-      </option>
+      <optgroup label="Tax">
+        <option value="tax">Tax</option>
+      </optgroup>
+      <option value="other">Others</option>
     </select>
   );
 }

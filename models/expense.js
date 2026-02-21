@@ -30,6 +30,15 @@ const ExpenseSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  isRecurring: {
+    type: Boolean,
+    default: false,
+  },
+  recurringFrequency: {
+    type: String,
+    enum: ["weekly", "monthly", "yearly"],
+    default: "monthly",
+  },
   createdAt: {
     type: Date,
     default: Date.now,

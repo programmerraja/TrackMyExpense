@@ -2,21 +2,83 @@
   width: 64px;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow: visible;
   top: 0;
   bottom: 0;
-  padding: 0.75rem;
+  padding: 0.5rem;
   position: fixed;
   align-items: center;
-  border: 2px solid var(--primary-color);
-  border-top: 0;
-  border-bottom: 0;
+  border-right: 2px solid var(--primary-color);
+  background-color: var(--secondary-color);
+  z-index: 100;
+  gap: 0.25rem;
 }
-.sideNavIcon {
-  margin: 1rem;
-}
-a {
+
+.sideNavLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   color: var(--primary-color);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.sideNavLink:hover {
+  background-color: rgba(10, 179, 119, 0.15);
+  color: #fff;
+}
+
+.sideNavLink--active {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.sideNavLink--active:hover {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.sideNavIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tooltip */
+.sideNavTooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #1a1a2e;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sideNavTooltip::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: #1a1a2e;
+}
+
+.sideNavLink:hover .sideNavTooltip {
+  opacity: 1;
 }
 
 @media (max-width: 500px) {
