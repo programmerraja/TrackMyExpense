@@ -441,8 +441,9 @@ function Dashboard({ type }) {
         )}
         {!error &&
           !loading &&
-          dashboardData &&
-          Object.keys(dashboardData).length === 0 && (
+          (!dashboardData ||
+            (Object.keys(dashboardData).length === 0 &&
+              (!filteredTableData || filteredTableData.length === 0))) && (
             <div className="emptyState">
               <p className="emptyStateIcon">📊</p>
               <p className="emptyStateTitle">No data yet</p>
@@ -538,7 +539,7 @@ function PriceCard({ type, title, amount, showLink, date, isFetchAllData }) {
 }
 
 function useFeatchData(type, apiCall, date, name, category, all) {
-  const [dashboardData, setDashboardData] = useState([]);
+  const [dashboardData, setDashboardData] = useState({});
   const [tableData, setTableData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

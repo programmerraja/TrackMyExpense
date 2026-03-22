@@ -141,10 +141,10 @@ exports.getExpense = async (req, res, next) => {
       delete basicMatchQuery.eventDate;
     }
     if (name) {
-      basicMatchQuery["name"] = name.toLowerCase();
+      basicMatchQuery["name"] = new RegExp(`^${name}$`, "i");
     }
     if (req.query.category) {
-      basicMatchQuery["category"] = req.query.category.toLowerCase();
+      basicMatchQuery["category"] = new RegExp(`^${req.query.category}$`, "i");
     }
 
     if (req.query.type === EXPENSE_TYPE.INCOME_TAX) {
