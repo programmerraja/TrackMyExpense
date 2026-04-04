@@ -56,6 +56,7 @@ const AMOUNT_COLOR_MAP = {
 function Dashboard({ type }) {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
+  const { addToast } = useToast();
 
   const [apiCall, setAPICall] = useState(false);
   const [showForm, setShowFrom] = useState(false);
@@ -75,12 +76,17 @@ function Dashboard({ type }) {
       : new Date().toISOString(),
   });
 
+  const [privacyMode, setPrivacyMode] = useState(
+    localStorage.getItem("privacyMode") === "true",
+  );
+
   const editDataRef = useRef(undefined);
 
   const {
     loading,
     error,
     dashboardData,
+    vaultBalances,
     tableData,
     setDashboardData,
     setTableData,
@@ -91,7 +97,16 @@ function Dashboard({ type }) {
     queryParams.get("name"),
     queryParams.get("category"),
     isFetchAllData,
+    privacyMode ? "primary" : undefined,
   );
+
+  const togglePrivacyMode = useCallback(() => {
+    setPrivacyMode((prev) => {
+      const newVal = !prev;
+      localStorage.setItem("privacyMode", newVal);
+      return newVal;
+    });
+  }, []);
 
   useEffect(() => {
     // Automatically process recurring expenses on mount
@@ -122,8 +137,6 @@ function Dashboard({ type }) {
     editDataRef.current = { ...state, isEdit: true };
     setShowFrom(true);
   }, []);
-
-  const { addToast } = useToast();
 
   const onDelete = useCallback(
     (id) => {
@@ -386,6 +399,15 @@ function Dashboard({ type }) {
                 📥 Export
               </button>
             )}
+            <button
+              onClick={togglePrivacyMode}
+              className={privacyMode ? "warning" : "secondary"}
+              title={
+                privacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"
+              }
+            >
+              {privacyMode ? "🕵️‍♂️ Privacy: ON" : "🔓 Privacy: OFF"}
+            </button>
           </div>
           <div className="presetGroup">
             <button
@@ -410,6 +432,22 @@ function Dashboard({ type }) {
               This Year
             </button>
           </div>
+          {type === EXPENSE_TYPE.DASHBOARD && !privacyMode && Object.keys(vaultBalances || {}).length > 0 && (
+            <div className="vaultSummaryRow">
+              <div className="vaultSummaryItem primary">
+                <span className="vaultLabel">Primary</span>
+                <span className="vaultValue">₹ {API.numberWithCommas(vaultBalances.primary || 0)}</span>
+              </div>
+              <div className="vaultSummaryItem emergency">
+                <span className="vaultLabel">Emergency Fund</span>
+                <span className="vaultValue">₹ {API.numberWithCommas(vaultBalances.emergency || 0)}</span>
+              </div>
+              <div className="vaultSummaryItem debt">
+                <span className="vaultLabel">Debt / Friends</span>
+                <span className="vaultValue">₹ {API.numberWithCommas(vaultBalances.debt || 0)}</span>
+              </div>
+            </div>
+          )}
           {type !== EXPENSE_TYPE.DASHBOARD && (
             <FilterComponent
               filters={filters}
@@ -538,8 +576,9 @@ function PriceCard({ type, title, amount, showLink, date, isFetchAllData }) {
   );
 }
 
-function useFeatchData(type, apiCall, date, name, category, all) {
+function useFeatchData(type, apiCall, date, name, category, all, vault) {
   const [dashboardData, setDashboardData] = useState({});
+  const [vaultBalances, setVaultBalances] = useState({});
   const [tableData, setTableData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -553,6 +592,9 @@ function useFeatchData(type, apiCall, date, name, category, all) {
     } else if (date && date.start) {
       queryParams.set("start", date.start);
       queryParams.set("end", date.end);
+    }
+    if (vault) {
+      queryParams.set("vault", vault);
     }
     if (
       name &&
@@ -581,6 +623,8 @@ function useFeatchData(type, apiCall, date, name, category, all) {
     API.getExpense(type, params)
       .then((res) => {
         let temp = {};
+        let finalVaultBals = {};
+
         if (type === EXPENSE_TYPE.DASHBOARD) {
           temp = {
             INCOME: 0,
@@ -591,6 +635,13 @@ function useFeatchData(type, apiCall, date, name, category, all) {
             temp.BALANCE += obj.amount;
             temp[obj._id] = obj.amount;
           });
+
+          // Process vault balances if provided
+          if (res.data.data.vaultBalances) {
+            res.data.data.vaultBalances.forEach((v) => {
+              finalVaultBals[v._id] = v.amount;
+            });
+          }
         } else {
           res.data.data.group.forEach((obj) => {
             temp[obj._id] = obj.amount;
@@ -604,10 +655,12 @@ function useFeatchData(type, apiCall, date, name, category, all) {
           "category",
           "type",
           "eventDate",
+          "vault",
         ];
 
         setTableData({ heading, data: res.data.data.content });
         setDashboardData(temp);
+        setVaultBalances(finalVaultBals);
         setLoading(false);
       })
       .catch((error) => {
@@ -618,12 +671,13 @@ function useFeatchData(type, apiCall, date, name, category, all) {
         );
         setLoading(false);
       });
-  }, [type, apiCall, date.start, date.end, name, category, all]);
+  }, [type, apiCall, date.start, date.end, name, category, all, vault]);
 
   return {
     loading,
     error,
     dashboardData,
+    vaultBalances,
     tableData,
     setDashboardData,
     setTableData,

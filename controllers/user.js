@@ -32,4 +32,20 @@ exports.signin=function (req, res, next) {
       });
     }
   )(req, res);
+};
+
+const { User } = require("../models");
+
+exports.updateSettings = async (req, res) => {
+  try {
+    const { budgetSettings } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { budgetSettings } },
+      { new: true, runValidators: true }
+    );
+    res.status(200).json({ success: true, data: user.budgetSettings });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
+};

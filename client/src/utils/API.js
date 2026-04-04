@@ -96,6 +96,10 @@ export default {
   addTransaction: function (txData) {
     return axios.post("/api/v1/price/portfolio/transactions", txData);
   },
+  updateSettings: function (settings) {
+    // this.setAuthHeader(); // Ensure header is set
+    return axios.put("/api/v1/signin/settings", { budgetSettings: settings });
+  },
   numberWithCommas: function (x) {
     if (x) {
       return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");

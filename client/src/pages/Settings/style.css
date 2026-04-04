@@ -1,0 +1,165 @@
+.settingsPage {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settingsHeader {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1rem;
+}
+
+.settingsHeader h2 {
+  margin: 0;
+  color: #1a1a2e;
+}
+
+.settingsHeader p {
+  color: #666;
+  margin: 0.5rem 0 0 0;
+}
+
+.settingsSection {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+.settingsSection h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-size: 1.1rem;
+  border-left: 4px solid #3b82f6;
+  padding-left: 1rem;
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .settingsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settingItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settingLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.settingItem label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.settingItem input,
+.settingItem select {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.settingItem input:focus,
+.settingItem select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.saveBtn {
+  background-color: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.saveBtn:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+/* Popover Styling */
+.infoPopover {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+
+.infoIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background-color: #e2e8f0;
+  color: #475569;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  font-style: italic;
+}
+
+.popoverContent {
+  visibility: hidden;
+  width: 240px;
+  background-color: #1e293b;
+  color: #fff;
+  text-align: left;
+  border-radius: 8px;
+  padding: 1rem;
+  position: absolute;
+  z-index: 100;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -120px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-weight: normal;
+}
+
+.popoverContent::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1e293b transparent transparent transparent;
+}
+
+.infoPopover:hover .popoverContent {
+  visibility: visible;
+  opacity: 1;
+}
+
+.privacySummary {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}

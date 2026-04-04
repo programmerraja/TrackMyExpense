@@ -49,6 +49,7 @@ async function getData(type, basicMatchQuery) {
     eventDate: 1,
     isRecurring: 1,
     recurringFrequency: 1,
+    vault: 1,
   };
 
   const aggregations = {
@@ -107,9 +108,16 @@ async function getData(type, basicMatchQuery) {
   };
 
   if (type === "DASHBOARD") {
-    const query = aggregations[type];
-    query.push({ $sort: { eventDate: -1 } });
-    return { group: await Expense.aggregate(query) };
+    const vaultBalMatch = { ...basicMatchQuery };
+    delete vaultBalMatch.vault; // Always show total across all vaults in the summary
+
+    return {
+      group: await Expense.aggregate(aggregations[type]),
+      vaultBalances: await Expense.aggregate([
+        { $match: vaultBalMatch },
+        { $group: { _id: "$vault", amount: { $sum: "$amount" } } },
+      ]),
+    };
   }
 
   const result = {
@@ -146,6 +154,9 @@ exports.getExpense = async (req, res, next) => {
     if (req.query.category) {
       basicMatchQuery["category"] = new RegExp(`^${req.query.category}$`, "i");
     }
+    if (req.query.vault) {
+      basicMatchQuery["vault"] = req.query.vault;
+    }
 
     if (req.query.type === EXPENSE_TYPE.INCOME_TAX) {
       basicMatchQuery = { userId: req.user._id };
@@ -175,10 +186,40 @@ exports.addExpense = async (req, res, next) => {
         data,
       );
     } else {
-      response = await Expense.create({
+      let expenseData = {
         userId: req.user._id,
         ...req.body,
-      });
+      };
+
+      // Auto-allocation logic for salary
+      const budgetSettings = req.user.budgetSettings;
+      if (
+        expenseData.type === EXPENSE_TYPE.INCOME &&
+        expenseData.name &&
+        expenseData.name.toLowerCase().includes("salary") &&
+        budgetSettings?.baseSalaryLimit > 0 &&
+        expenseData.amount > budgetSettings.baseSalaryLimit
+      ) {
+        const limit = budgetSettings.baseSalaryLimit;
+        const surplus = expenseData.amount - limit;
+        const autoVault = budgetSettings.autoAllocationVault || "emergency";
+
+        // Create the surplus entry first
+        await Expense.create({
+          ...expenseData,
+          amount: surplus,
+          vault: autoVault,
+          note: expenseData.note
+            ? `${expenseData.note} (Auto-allocated surplus)`
+            : "Auto-allocated surplus salary",
+        });
+
+        // Current entry becomes the balance (the "public" amount)
+        expenseData.amount = limit;
+        expenseData.vault = "primary";
+      }
+
+      response = await Expense.create(expenseData);
     }
 
     return res.status(201).json({

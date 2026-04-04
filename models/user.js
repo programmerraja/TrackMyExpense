@@ -42,6 +42,11 @@ const UserSchema = new mongoose.Schema(
     stocks: {
       type: [StockSchema],
       default: []
+    },
+    budgetSettings: {
+      baseSalaryLimit: { type: Number, default: 0 },
+      autoAllocationVault: { type: String, default: "emergency" },
+      isPrivacyModeEnabled: { type: Boolean, default: false }
     }
   },
   { timestamps: true }

@@ -39,6 +39,11 @@ const ExpenseSchema = new mongoose.Schema({
     enum: ["weekly", "monthly", "yearly"],
     default: "monthly",
   },
+  vault: {
+    type: String,
+    enum: ["primary", "emergency", "debt"],
+    default: "primary",
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -21,6 +21,7 @@ export function Form({
     eventDate: new Date().toISOString().substring(0, 10),
     category: "food",
     note: "",
+    vault: "primary",
     isRecurring: false,
     recurringFrequency: "monthly",
   });
@@ -245,6 +246,19 @@ export function Form({
               value={state.category}
               onChange={(e) => handleChange(e.target)}
             />
+          </label>
+
+          <label className="block">
+            <span className="block">Vault (Account Partition)</span>
+            <select
+              id="vault"
+              value={state.vault}
+              onChange={(e) => handleChange(e.target)}
+            >
+              <option value="primary">Primary (Spendable)</option>
+              <option value="emergency">Emergency Fund</option>
+              <option value="debt">Debt / Transit</option>
+            </select>
           </label>
 
           <div className="recurringToggle">
