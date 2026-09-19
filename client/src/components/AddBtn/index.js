@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from "react";
 import API from "../../utils/API";
 import { useToast } from "../Toast";
 import {
+  EMERGENCY_CATEGORY,
+  EMERGENCY_VAULT,
   EXPENSE_TYPE,
   WORKSPACE_SCOPED_TYPES,
 } from "../../constants/expense";
@@ -33,6 +35,7 @@ const CATEGORIES = [
     ["sports", "Sports"],
     ["salary", "Salary"],
     ["savings", "Savings"],
+    ["emergency", "Emergency fund"],
     ["stock", "Stock"],
     ["tax", "Tax"],
     ["other", "Other"],
@@ -168,6 +171,11 @@ export function Form({
         ? { workspaceId: activeWorkspaceId }
         : {}),
       amount: signedAmount(),
+      // The category is the switch the user actually sees, so it decides the
+      // account: money filed under Emergency fund has to sit in that pot even
+      // when the folded-away Account field still reads Spendable.
+      vault:
+        state.category === EMERGENCY_CATEGORY ? EMERGENCY_VAULT : state.vault,
       name: state.name.trim().toLowerCase(),
       note: state.note.trim(),
     })

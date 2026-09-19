@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { CATEGORIES, categoryLabel } from "../../constants/expense";
+import { CATEGORIES, amountClass, categoryLabel } from "../../constants/expense";
 import {
   bucketKey,
   bucketLabel,
@@ -25,7 +25,10 @@ const formatDate = (value) =>
     year: "numeric",
   });
 
-const money = (value) => `₹${Math.abs(value || 0).toLocaleString("en-IN")}`;
+// Direction has to be readable without parsing the narration, so every amount
+// carries its sign and its colour: red left the account, green came in.
+const money = (value) =>
+  `${value < 0 ? "−" : "+"}₹${Math.abs(value || 0).toLocaleString("en-IN")}`;
 
 const defaultCategory = (type) =>
   type === "INCOME" ? "salary" : type === "INCOME_TAX" ? "tax" : "other";
@@ -72,6 +75,46 @@ const groupPayees = (entries) => {
   });
   return [...byKey.values()];
 };
+
+// The raw bank lines behind a group. Assigned groups get a checkbox per line so
+// single transactions can be dropped; unassigned ones are read-only, since
+// nothing there is imported until it has a category.
+function TransactionList({ entries, onToggle }) {
+  return (
+    <div className="space-y-1.5">
+      {entries.map((entry) => {
+        const Row = onToggle ? "label" : "div";
+
+        return (
+          <Row
+            key={entry.tempId}
+            className="flex items-start gap-2 text-xs text-slate-400"
+          >
+            {onToggle && (
+              <input
+                type="checkbox"
+                checked={entry.selected}
+                onChange={() => onToggle(entry.tempId)}
+                className="mt-0.5 shrink-0 accent-brand-500"
+              />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block text-slate-300">
+                {formatDate(entry.eventDate)}
+              </span>
+              <span className="line-clamp-2 break-all">{entry.narration}</span>
+            </span>
+            <span
+              className={`shrink-0 font-semibold ${amountClass(entry.amount)}`}
+            >
+              {money(entry.amount)}
+            </span>
+          </Row>
+        );
+      })}
+    </div>
+  );
+}
 
 function DestinationPicker({ value, onChange, people }) {
   const { type, category, name } = value;
@@ -170,11 +213,7 @@ function BucketRow({
           </span>
         </button>
 
-        <span
-          className={`shrink-0 font-bold ${
-            total < 0 ? "text-money-out" : "text-money-in"
-          }`}
-        >
+        <span className={`shrink-0 font-bold ${amountClass(total)}`}>
           {money(total)}
         </span>
       </div>
@@ -217,7 +256,13 @@ function BucketRow({
                 <span className="min-w-0 flex-1 truncate">
                   {payee.matchText} · {payee.entries.length}
                 </span>
-                <span className="shrink-0">{money(sumOf(payee.entries))}</span>
+                <span
+                  className={`shrink-0 font-semibold ${amountClass(
+                    sumOf(payee.entries),
+                  )}`}
+                >
+                  {money(sumOf(payee.entries))}
+                </span>
                 <button
                   type="button"
                   onClick={() => onToggleRemember(payee)}
@@ -249,26 +294,73 @@ function BucketRow({
             <summary className="cursor-pointer text-xs font-semibold text-brand-400">
               Transactions
             </summary>
-            <div className="mt-2 space-y-1">
-              {entries.map((entry) => (
-                <label
-                  key={entry.tempId}
-                  className="flex items-start gap-2 text-xs text-slate-400"
-                >
-                  <input
-                    type="checkbox"
-                    checked={entry.selected}
-                    onChange={() => onToggle(entry.tempId)}
-                    className="mt-0.5 accent-brand-500"
-                  />
-                  <span className="min-w-0 flex-1 truncate">
-                    {formatDate(entry.eventDate)} · {entry.narration}
-                  </span>
-                  <span className="shrink-0">{money(entry.amount)}</span>
-                </label>
-              ))}
+            <div className="mt-2">
+              <TransactionList entries={entries} onToggle={onToggle} />
             </div>
           </details>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PayeeRow({ payee, checked, onCheck, categories, onAssign }) {
+  const [open, setOpen] = useState(false);
+  const total = sumOf(payee.entries);
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 p-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onCheck}
+          className="h-4 w-4 shrink-0 accent-brand-500"
+          aria-label={`Select ${payee.matchText}`}
+        />
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          aria-expanded={open}
+        >
+          <span className="shrink-0 text-xs text-slate-500">
+            {open ? "▾" : "▸"}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium">
+              {payee.matchText}
+            </span>
+            <span className="mt-0.5 block text-xs text-slate-500">
+              {payee.entries.length}{" "}
+              {payee.entries.length === 1 ? "txn" : "txns"}
+            </span>
+          </span>
+        </button>
+        <div className="hidden shrink-0 gap-1 sm:flex">
+          {categories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => onAssign(category)}
+              className="chip capitalize hover:border-brand-500/40"
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+        <span
+          className={`w-24 shrink-0 text-right text-sm font-bold ${amountClass(
+            total,
+          )}`}
+        >
+          {money(total)}
+        </span>
+      </div>
+
+      {open && (
+        <div className="border-t border-white/5 px-3 pb-3 pt-2">
+          <TransactionList entries={payee.entries} />
         </div>
       )}
     </div>
@@ -543,55 +635,22 @@ export default function ImportForm({
             {visiblePayees.map((payee) => {
               const checked = picked.includes(payee.key);
               return (
-                <div key={payee.key} className="flex items-center gap-3 p-3">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() =>
-                      setPicked((current) =>
-                        checked
-                          ? current.filter((key) => key !== payee.key)
-                          : [...current, payee.key],
-                      )
-                    }
-                    className="h-4 w-4 shrink-0 accent-brand-500"
-                    aria-label={`Select ${payee.matchText}`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {payee.matchText}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {payee.entries.length} txns
-                    </p>
-                  </div>
-                  <div className="hidden shrink-0 gap-1 sm:flex">
-                    {popularCategories.map((category) => (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() =>
-                          assignPayees([payee.key], {
-                            type: "EXPENSE",
-                            category,
-                          })
-                        }
-                        className="chip capitalize hover:border-brand-500/40"
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                  <span
-                    className={`w-24 shrink-0 text-right text-sm font-bold ${
-                      sumOf(payee.entries) < 0
-                        ? "text-money-out"
-                        : "text-money-in"
-                    }`}
-                  >
-                    {money(sumOf(payee.entries))}
-                  </span>
-                </div>
+                <PayeeRow
+                  key={payee.key}
+                  payee={payee}
+                  checked={checked}
+                  onCheck={() =>
+                    setPicked((current) =>
+                      checked
+                        ? current.filter((key) => key !== payee.key)
+                        : [...current, payee.key],
+                    )
+                  }
+                  categories={popularCategories}
+                  onAssign={(category) =>
+                    assignPayees([payee.key], { type: "EXPENSE", category })
+                  }
+                />
               );
             })}
           </div>

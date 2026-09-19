@@ -30,6 +30,11 @@ export const URL_MAPPER = {
 
 export const FAMILY_CATEGORY = "home";
 
+// Picking this category files the entry under the emergency fund, so the money
+// lands in one pot with the salary surplus the server allocates there.
+export const EMERGENCY_CATEGORY = "emergency";
+export const EMERGENCY_VAULT = "emergency";
+
 export const CATEGORIES = [
   "food",
   "bills",
@@ -43,12 +48,18 @@ export const CATEGORIES = [
   "sports",
   "salary",
   "savings",
+  "emergency",
   "tax",
   "other",
 ];
 
+const CATEGORY_LABELS = {
+  [FAMILY_CATEGORY]: "Sent home",
+  [EMERGENCY_CATEGORY]: "Emergency fund",
+};
+
 export const categoryLabel = (category) =>
-  category === FAMILY_CATEGORY ? "Sent home" : category;
+  CATEGORY_LABELS[category] || category;
 
 // The one rule for money colour: it follows the sign, never the label. Money
 // that left the account is red wherever it shows up, including debt you are

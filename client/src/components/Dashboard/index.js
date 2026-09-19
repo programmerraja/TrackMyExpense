@@ -15,8 +15,17 @@ import {
   FAMILY_CATEGORY,
   WORKSPACE_SCOPED_TYPES,
   URL_MAPPER,
+  categoryLabel,
 } from "../../constants/expense";
 import { useWorkspace } from "../../context/WorkspaceContext";
+import {
+  PRESETS,
+  formatDay,
+  fromInputDate,
+  matchingPreset,
+  presetRange,
+  toInputDate,
+} from "../../utils/dateRange";
 
 const TYPE_LABELS = {
   DASHBOARD: "Dashboard",
@@ -37,12 +46,19 @@ const NAME_OR_CATEGORY_TYPES = [
   EXPENSE_TYPE.EXPENSE,
 ];
 
-const PRESETS = [
-  { id: "thisMonth", label: "This month" },
-  { id: "lastMonth", label: "Last month" },
-  { id: "last3", label: "3 months" },
-  { id: "thisYear", label: "This year" },
-];
+const CalendarIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    className="h-4 w-4 shrink-0 text-brand-400"
+    aria-hidden="true"
+  >
+    <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
+    <path d="M8 3v4m8-4v4M4 11h16" />
+  </svg>
+);
 
 // Each bucket keeps its colour wherever it is shown.
 const AMOUNT_CLASS_MAP = {
@@ -106,6 +122,7 @@ function Dashboard({ type }) {
     error,
     dashboardData,
     tableData,
+    emergency,
     setDashboardData,
     setTableData,
   } = useFeatchData(
@@ -167,7 +184,7 @@ function Dashboard({ type }) {
 
   const handleDateChange = useCallback(
     (key) => (e) => {
-      const value = new Date(e.target.value).toISOString();
+      const value = fromInputDate(e.target.value);
       setDate((prevDate) => ({
         ...prevDate,
         [key]: value,
@@ -187,32 +204,22 @@ function Dashboard({ type }) {
   }, []);
 
   const handlePreset = useCallback((preset) => {
-    const now = new Date();
-    let start, end;
-    switch (preset) {
-      case "thisMonth":
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = now;
-        break;
-      case "lastMonth":
-        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        end = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-      case "last3":
-        start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-        end = now;
-        break;
-      case "thisYear":
-        start = new Date(now.getFullYear(), 0, 1);
-        end = now;
-        break;
-      default:
-        return;
-    }
-    setDate({ start: start.toISOString(), end: end.toISOString() });
+    const range = presetRange(preset);
+    if (!range) return;
+
+    setDate({
+      start: range.start.toISOString(),
+      end: range.end.toISOString(),
+    });
     setIsFetchAllData(false);
     setAPICall((e) => !e);
   }, []);
+
+  const activePreset = useMemo(() => matchingPreset(date), [date]);
+
+  const rangeLabel = isFetchAllData
+    ? "All time"
+    : `${formatDay(date.start)} – ${formatDay(date.end, true)}`;
 
   const [filters, setFilters] = useState({
     category: "",
@@ -330,24 +337,12 @@ function Dashboard({ type }) {
         onAddSuccess={handleAddSuccess}
       />
       <div className="page-wide">
-        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="page-title">{TYPE_LABELS[type] || type}</h1>
-            <p className="page-subtitle">
-              {workspaceId && activeWorkspace
-                ? `${activeWorkspace.name} · `
-                : ""}
-              {isFetchAllData
-                ? "All time"
-                : `${new Date(date.start).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                  })} – ${new Date(date.end).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}`}
-            </p>
+            {workspaceId && activeWorkspace && (
+              <p className="page-subtitle">{activeWorkspace.name}</p>
+            )}
           </div>
           {type !== EXPENSE_TYPE.DASHBOARD && (
             <button
@@ -360,22 +355,34 @@ function Dashboard({ type }) {
           )}
         </header>
 
-        <div className="mb-5 flex flex-wrap gap-2">
-          {PRESETS.map((preset) => (
+        {/* The period every number below is answering, said once and said
+            loudly, with the shortcut that produced it kept lit. */}
+        <div className="card mb-5 flex flex-wrap items-center gap-x-4 gap-y-3 p-3">
+          <p className="flex items-center gap-2 text-[15px] font-semibold text-slate-100 sm:text-base">
+            <CalendarIcon />
+            {rangeLabel}
+          </p>
+          <div className="flex flex-wrap gap-2 sm:ml-auto">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                className={`chip ${
+                  !isFetchAllData && activePreset === preset.id
+                    ? "chip-active"
+                    : ""
+                }`}
+                onClick={() => handlePreset(preset.id)}
+              >
+                {preset.label}
+              </button>
+            ))}
             <button
-              key={preset.id}
-              className="chip"
-              onClick={() => handlePreset(preset.id)}
+              onClick={handleAll}
+              className={`chip ${isFetchAllData ? "chip-active" : ""}`}
             >
-              {preset.label}
+              All time
             </button>
-          ))}
-          <button
-            onClick={handleAll}
-            className={`chip ${isFetchAllData ? "chip-active" : ""}`}
-          >
-            All time
-          </button>
+          </div>
         </div>
 
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -413,6 +420,22 @@ function Dashboard({ type }) {
                   onAction={() => setShowFrom(true)}
                 />
               )}
+
+            {!error && type === EXPENSE_TYPE.INCOME && emergency !== null && (
+              <section className="card flex flex-wrap items-center justify-between gap-3 border-l-4 border-l-money-tax p-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                    Emergency fund
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Balance today · all time, not this period
+                  </p>
+                </div>
+                <p className="text-xl font-bold text-money-tax sm:text-2xl">
+                  ₹{API.numberWithCommas(emergency) || 0}
+                </p>
+              </section>
+            )}
 
             {!error && filteredDashboardData && (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -454,7 +477,7 @@ function Dashboard({ type }) {
                     type="date"
                     className="field min-w-0 px-2"
                     onChange={handleDateChange("start")}
-                    value={date.start.substring(0, 10)}
+                    value={toInputDate(date.start)}
                   />
                 </div>
                 <div className="min-w-0">
@@ -465,7 +488,7 @@ function Dashboard({ type }) {
                     id="range-end"
                     type="date"
                     className="field min-w-0 px-2"
-                    value={date.end.substring(0, 10)}
+                    value={toInputDate(date.end)}
                     onChange={handleDateChange("end")}
                   />
                 </div>
@@ -522,7 +545,7 @@ function PriceCard({ type, title, amount, date, isFetchAllData }) {
     <Link to={href} className="no-underline">
       <div className="card h-full p-4 transition hover:border-white/15 hover:bg-ink-800">
         <p className="truncate text-xs font-medium uppercase tracking-wide text-slate-400">
-          {TYPE_LABELS[title] || title}
+          {TYPE_LABELS[title] || categoryLabel(title)}
         </p>
         <p className={`mt-1.5 text-lg font-bold sm:text-xl ${amountClass}`}>
           ₹{API.numberWithCommas(amount) || 0}
@@ -535,6 +558,7 @@ function PriceCard({ type, title, amount, date, isFetchAllData }) {
 function useFeatchData(type, apiCall, date, name, category, all, workspaceId) {
   const [dashboardData, setDashboardData] = useState({});
   const [tableData, setTableData] = useState({});
+  const [emergency, setEmergency] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -579,6 +603,7 @@ function useFeatchData(type, apiCall, date, name, category, all, workspaceId) {
 
         setTableData({ data: res.data.data.content });
         setDashboardData(temp);
+        setEmergency(res.data.data.emergency ?? null);
         setLoading(false);
       })
       .catch((error) => {
@@ -606,6 +631,7 @@ function useFeatchData(type, apiCall, date, name, category, all, workspaceId) {
     error,
     dashboardData,
     tableData,
+    emergency,
     setDashboardData,
     setTableData,
   };

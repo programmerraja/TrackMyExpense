@@ -177,14 +177,11 @@ async function getData(type, basicMatchQuery) {
     ],
     EXPENSE: [
       {
-        // Family money is only listed when asked for by category, so this page
-        // totals the same own spending the dashboard shows.
+        // Every rupee that left shows here, money sent home included: the
+        // dashboard splits the two only so one does not bury the other.
         $match: {
           ...basicMatchQuery,
           type: EXPENSE_TYPE.EXPENSE,
-          ...(basicMatchQuery.category
-            ? {}
-            : { category: { $ne: FAMILY_CATEGORY } }),
         },
       },
       {
@@ -225,9 +222,22 @@ async function getData(type, basicMatchQuery) {
 
   if (type === EXPENSE_TYPE.INCOME) {
     result.total = result.group.reduce((acc, curr) => acc + curr.amount, 0);
+    result.emergency = await vaultBalance(basicMatchQuery.userId);
   }
 
   return result;
+}
+
+// What is left in the fund, not what moved this month: a balance ignores the
+// date range and the workspace, and every row tagged to the vault counts, the
+// money paid in as well as whatever was later spent or lent out of it.
+async function vaultBalance(userId, vault = "emergency") {
+  const [totals] = await Expense.aggregate([
+    { $match: { userId, vault } },
+    { $group: { _id: null, amount: { $sum: "$amount" } } },
+  ]);
+
+  return totals ? totals.amount : 0;
 }
 
 exports.getExpense = async (req, res, next) => {
