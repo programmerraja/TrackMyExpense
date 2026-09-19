@@ -1,348 +1,400 @@
 import React, { useEffect, useRef, useState } from "react";
-import "./style.css";
+
 import API from "../../utils/API";
-import { EXPENSE_TYPE } from "../Dashboard";
 import { useToast } from "../Toast";
+import {
+  EXPENSE_TYPE,
+  WORKSPACE_SCOPED_TYPES,
+} from "../../constants/expense";
+import { useWorkspace } from "../../context/WorkspaceContext";
+
+const TYPE_OPTIONS = [
+  { value: EXPENSE_TYPE.EXPENSE, label: "Spent" },
+  { value: EXPENSE_TYPE.INCOME, label: "Got money" },
+  { value: EXPENSE_TYPE.DEBT_GIVEN, label: "Lent / paid back" },
+  { value: EXPENSE_TYPE.DEBT_BOUGHT, label: "Borrowed / received back" },
+  { value: EXPENSE_TYPE.INCOME_TAX, label: "Paid tax" },
+  { value: EXPENSE_TYPE.INVESTMENT, label: "Invested" },
+];
+
+const CATEGORIES = [
+  ["Everyday", [
+    ["food", "Food"],
+    ["bills", "Bills"],
+    ["rent", "Rent"],
+    ["travel", "Travel"],
+    ["medical", "Medical"],
+    ["shopping", "Shopping"],
+  ]],
+  ["Other", [
+    ["home", "Sent home"],
+    ["entertainment", "Entertainment"],
+    ["friends", "Friends"],
+    ["sports", "Sports"],
+    ["salary", "Salary"],
+    ["savings", "Savings"],
+    ["stock", "Stock"],
+    ["tax", "Tax"],
+    ["other", "Other"],
+  ]],
+];
+
+const EMPTY_ENTRY = {
+  type: EXPENSE_TYPE.EXPENSE,
+  name: "",
+  amount: 0,
+  eventDate: new Date().toISOString().substring(0, 10),
+  category: "food",
+  note: "",
+  vault: "primary",
+  isRecurring: false,
+  recurringFrequency: "monthly",
+};
+
+const fieldLabel = "label";
+
+function CloseIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5"
+    >
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+function CategorySelect({ value, onChange }) {
+  return (
+    <select
+      id="category"
+      value={value}
+      onChange={onChange}
+      className="field capitalize"
+    >
+      {CATEGORIES.map(([group, options]) => (
+        <optgroup key={group} label={group}>
+          {options.map(([optionValue, label]) => (
+            <option key={optionValue} value={optionValue}>
+              {label}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
 
 export function Form({
   setShow,
   propsState,
   setAPICall,
   nameSuggestions,
-  onEditSuccess,
-  onEditFailure,
   onAddSuccess,
 }) {
   const { addToast } = useToast();
-  const [state, setState] = useState({
-    type: EXPENSE_TYPE.INCOME,
-    name: "",
-    amount: 0,
-    eventDate: new Date().toISOString().substring(0, 10),
-    category: "food",
-    note: "",
-    vault: "primary",
-    isRecurring: false,
-    recurringFrequency: "monthly",
-  });
+  const { activeWorkspaceId } = useWorkspace();
+  const [state, setState] = useState(EMPTY_ENTRY);
   const [errors, setErrors] = useState({});
-
-  const TYPE_DISPLAY = {
-    INCOME: "Income",
-    EXPENSE: "Expense",
-    DEBT_BOUGHT: "Debt (Bought)",
-    DEBT_GIVEN: "Debt (Given)",
-    INVESTMENT: "Investment",
-    INCOME_TAX: "Income Tax",
-  };
-
-  // Types that can be selected when adding new entries
-  const SELECTABLE_TYPES = [
-    EXPENSE_TYPE.INCOME,
-    EXPENSE_TYPE.EXPENSE,
-    EXPENSE_TYPE.DEBT_BOUGHT,
-    EXPENSE_TYPE.DEBT_GIVEN,
-    EXPENSE_TYPE.INVESTMENT,
-    EXPENSE_TYPE.INCOME_TAX,
-  ];
-
-  // Whether the type is locked (opened from a specific page, not dashboard)
+  const [saving, setSaving] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const isEditing = Boolean(propsState.isEdit);
   const isTypeLocked =
     propsState.type &&
     propsState.type !== EXPENSE_TYPE.DASHBOARD &&
-    !propsState.isEdit;
+    propsState.type !== EXPENSE_TYPE.DEBT &&
+    !isEditing;
 
   useEffect(() => {
-    if (Object.keys(propsState).length) {
-      setState((prevState) => ({
-        ...prevState,
-        ...propsState,
-        type:
-          propsState.type === EXPENSE_TYPE.DEBT
-            ? EXPENSE_TYPE.DEBT_BOUGHT
-            : propsState.type,
-        eventDate: propsState.eventDate
-          ? new Date(propsState.eventDate).toISOString().substring(0, 10)
-          : prevState.eventDate,
-      }));
-    }
+    setState({
+      ...EMPTY_ENTRY,
+      ...propsState,
+      type:
+        propsState.type === EXPENSE_TYPE.DEBT
+          ? EXPENSE_TYPE.DEBT_GIVEN
+          : propsState.type || EMPTY_ENTRY.type,
+      eventDate: propsState.eventDate
+        ? new Date(propsState.eventDate).toISOString().substring(0, 10)
+        : EMPTY_ENTRY.eventDate,
+    });
+    // Open the extra fields when the entry already uses one, so editing never
+    // hides a value the user set earlier.
+    setShowMore(
+      Boolean(
+        propsState.note ||
+          propsState.isRecurring ||
+          (propsState.vault && propsState.vault !== "primary"),
+      ),
+    );
   }, [propsState]);
 
-  const inputConverter = (type, value, id) => {
-    if (
-      ![EXPENSE_TYPE.INCOME, EXPENSE_TYPE.DEBT_BOUGHT].includes(type) &&
-      id === "amount"
-    ) {
-      return value * -1;
-    }
-    if (typeof value === "string" && id !== "type") {
-      return value.toLowerCase();
-    }
-    return value;
-  };
-
-  const handleChange = (element) => {
-    setState((prevState) => ({ ...prevState, [element.id]: element.value }));
-    // Clear error for this field on change
-    if (errors[element.id]) {
-      setErrors((prev) => ({ ...prev, [element.id]: null }));
+  const handleChange = (event) => {
+    const { id, value } = event.target;
+    setState((current) => ({ ...current, [id]: value }));
+    if (errors[id]) {
+      setErrors((current) => ({ ...current, [id]: null }));
     }
   };
 
   const validate = () => {
-    const newErrors = {};
-    if (!state.name || !state.name.trim()) {
-      newErrors.name = "Name is required";
-    }
+    const nextErrors = {};
+    if (!state.name.trim()) nextErrors.name = "Add a short description";
     if (!state.amount || Number(state.amount) === 0) {
-      newErrors.amount = "Amount must be greater than 0";
+      nextErrors.amount = "Amount must be more than zero";
     }
-    if (!state.eventDate) {
-      newErrors.eventDate = "Date is required";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (!state.eventDate) nextErrors.eventDate = "Choose a date";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const onSubmit = () => {
-    if (!validate()) {
-      addToast("Please fix the errors before submitting", "error");
-      return;
-    }
+  const signedAmount = () => {
+    const amount = Math.abs(Number(state.amount));
+    return [EXPENSE_TYPE.INCOME, EXPENSE_TYPE.DEBT_BOUGHT].includes(state.type)
+      ? amount
+      : -amount;
+  };
 
-    const payload = Object.fromEntries(
-      Object.entries(state).map(([key, value]) => [
-        key,
-        inputConverter(state.type, value, key),
-      ]),
-    );
+  const onSubmit = (event) => {
+    event.preventDefault();
+    if (!validate()) return;
 
-    API.addExpense(payload)
+    setSaving(true);
+    API.addExpense({
+      ...state,
+      ...(WORKSPACE_SCOPED_TYPES.includes(state.type) && activeWorkspaceId
+        ? { workspaceId: activeWorkspaceId }
+        : {}),
+      amount: signedAmount(),
+      name: state.name.trim().toLowerCase(),
+      note: state.note.trim(),
+    })
       .then((response) => {
-        if (propsState.isEdit) {
-          addToast("Item updated successfully", "success");
-          if (onEditSuccess) {
-            onEditSuccess(response.data);
-          }
-        } else {
-          addToast("Item added successfully", "success");
-          if (onAddSuccess) {
-            onAddSuccess(response.data);
-          }
-        }
-        setShow((e) => !e);
-        setAPICall((e) => !e);
+        const savedEntry = response.data.data || response.data;
+        addToast(isEditing ? "Entry updated" : "Entry added", "success");
+        if (!isEditing && onAddSuccess) onAddSuccess(savedEntry);
+        setShow();
+        setAPICall((value) => !value);
       })
-      .catch((err) => {
+      .catch(() => {
         addToast(
-          propsState.isEdit ? "Failed to update item" : "Failed to add item",
+          isEditing ? "Could not update entry" : "Could not add entry",
           "error",
         );
-        if (propsState.isEdit && onEditFailure) {
-          onEditFailure(err);
-        }
+        setSaving(false);
       });
   };
 
   return (
-    <div className="pfixed" onClick={() => setShow((e) => !e)}>
-      <div className="fromContainer" onClick={(e) => e.stopPropagation()}>
-        <div className="fromCloseIcon">
-          <svg
-            onClick={() => setShow((e) => !e)}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4"
+      onMouseDown={setShow}
+      role="presentation"
+    >
+      <section
+        className="max-h-[88vh] w-full overflow-y-auto rounded-t-2xl border border-white/10 bg-ink-900 p-4 shadow-2xl sm:max-w-md sm:rounded-2xl sm:p-5"
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="entry-form-title"
+      >
+        <header className="mb-4 flex items-center justify-between">
+          <h2 id="entry-form-title" className="text-base font-bold">
+            {isEditing ? "Edit entry" : "Add entry"}
+          </h2>
+          <button
+            type="button"
+            onClick={setShow}
+            className="btn-icon"
+            aria-label="Close"
           >
-            <path d="M18 6 6 18"></path>
-            <path d="m6 6 12 12"></path>
-          </svg>
-        </div>
+            <CloseIcon />
+          </button>
+        </header>
 
-        <h3 className="formTitle">
-          {propsState?.isEdit ? "Edit Entry" : "New Entry"}
-        </h3>
-
-        <form>
-          <label className="block">
-            <span className="block">Type</span>
+        <form onSubmit={onSubmit} className="space-y-3">
+          <div>
+            <label htmlFor="type" className={fieldLabel}>
+              Action
+            </label>
             <select
               id="type"
-              required
               value={state.type}
-              onChange={(e) => handleChange(e.target)}
+              onChange={handleChange}
               disabled={isTypeLocked}
-              style={
-                isTypeLocked ? { opacity: 0.6, cursor: "not-allowed" } : {}
-              }
+              className="field disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {SELECTABLE_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {TYPE_DISPLAY[type] || type}
+              {TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label className="block">
-            <span className="block">Name</span>
+          <div>
+            <label htmlFor="name" className={fieldLabel}>
+              {state.type === EXPENSE_TYPE.DEBT_GIVEN ||
+              state.type === EXPENSE_TYPE.DEBT_BOUGHT
+                ? "Person"
+                : "Description"}
+            </label>
             <input
               type="text"
               id="name"
-              placeholder="e.g. Grocery, Rent, Salary..."
+              placeholder={
+                state.type === EXPENSE_TYPE.EXPENSE
+                  ? "Groceries, rent, recharge…"
+                  : "Name or source"
+              }
               value={state.name}
-              onChange={(e) => handleChange(e.target)}
-              list="options"
-              className={errors.name ? "fieldError" : ""}
+              onChange={handleChange}
+              list="entry-name-options"
+              className={`field ${errors.name ? "border-money-out" : ""}`}
+              autoFocus
             />
-            {errors.name && <span className="errorText">{errors.name}</span>}
-            <datalist id="options">
-              {nameSuggestions &&
-                nameSuggestions.map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
+            {errors.name && (
+              <p className="mt-1 text-xs text-money-out">{errors.name}</p>
+            )}
+            <datalist id="entry-name-options">
+              {(nameSuggestions || []).map((name) => (
+                <option key={name} value={name} />
+              ))}
             </datalist>
-          </label>
+          </div>
 
-          <div className="twoFrom">
-            <label className="block">
-              <span className="block">Amount</span>
-              <input
-                type="number"
-                id="amount"
-                placeholder="0"
-                value={Math.abs(state.amount) || ""}
-                onChange={(e) => handleChange(e.target)}
-                min="0"
-                className={errors.amount ? "fieldError" : ""}
-              />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="min-w-0">
+              <label htmlFor="amount" className={fieldLabel}>
+                Amount
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  id="amount"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={Math.abs(state.amount) || ""}
+                  onChange={handleChange}
+                  min="0"
+                  className={`field pl-7 ${
+                    errors.amount ? "border-money-out" : ""
+                  }`}
+                />
+              </div>
               {errors.amount && (
-                <span className="errorText">{errors.amount}</span>
+                <p className="mt-1 text-xs text-money-out">{errors.amount}</p>
               )}
-            </label>
+            </div>
 
-            <label className="block">
-              <span className="block">Date</span>
+            <div className="min-w-0">
+              <label htmlFor="eventDate" className={fieldLabel}>
+                Date
+              </label>
               <input
                 type="date"
                 id="eventDate"
                 value={state.eventDate}
-                onChange={(e) => handleChange(e.target)}
-                className={errors.eventDate ? "fieldError" : ""}
+                onChange={handleChange}
+                className={`field min-w-0 px-2 ${
+                  errors.eventDate ? "border-money-out" : ""
+                }`}
               />
-            </label>
+            </div>
           </div>
 
-          <label className="block">
-            <span className="block">Category</span>
-            <Category
-              id="category"
-              value={state.category}
-              onChange={(e) => handleChange(e.target)}
-            />
-          </label>
-
-          <label className="block">
-            <span className="block">Vault (Account Partition)</span>
-            <select
-              id="vault"
-              value={state.vault}
-              onChange={(e) => handleChange(e.target)}
-            >
-              <option value="primary">Primary (Spendable)</option>
-              <option value="emergency">Emergency Fund</option>
-              <option value="debt">Debt / Transit</option>
-            </select>
-          </label>
-
-          <div className="recurringToggle">
-            <label className="toggleLabel">
-              <input
-                type="checkbox"
-                checked={state.isRecurring}
-                onChange={(e) =>
-                  setState((prev) => ({
-                    ...prev,
-                    isRecurring: e.target.checked,
-                  }))
-                }
-              />
-              <span className="toggleSwitch"></span>
-              <span>Recurring</span>
+          <div>
+            <label htmlFor="category" className={fieldLabel}>
+              Category
             </label>
-            {state.isRecurring && (
-              <select
-                id="recurringFrequency"
-                value={state.recurringFrequency}
-                onChange={(e) => handleChange(e.target)}
-                className="frequencySelect"
-              >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-              </select>
-            )}
+            <CategorySelect value={state.category} onChange={handleChange} />
           </div>
 
-          <label className="block">
-            <span className="block">Notes (optional)</span>
-            <textarea
-              id="note"
-              placeholder="Add details..."
-              value={state.note}
-              onChange={(e) => handleChange(e.target)}
-            />
-          </label>
+          {/* Account, repeat and note are rarely changed, so they stay folded
+              away to keep the sheet short on a phone. */}
+          <button
+            type="button"
+            onClick={() => setShowMore((open) => !open)}
+            className="flex w-full items-center justify-between rounded-lg bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08]"
+          >
+            More options
+            <span className="text-slate-500">{showMore ? "−" : "+"}</span>
+          </button>
 
-          <button type="button" onClick={onSubmit} className="formBtn">
-            {propsState?.isEdit ? "Update" : "Create"}
+          {showMore && (
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="vault" className={fieldLabel}>
+                  Account
+                </label>
+                <select
+                  id="vault"
+                  value={state.vault || "primary"}
+                  onChange={handleChange}
+                  className="field"
+                >
+                  <option value="primary">Spendable</option>
+                  <option value="emergency">Emergency fund</option>
+                </select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 rounded-lg bg-white/[0.03] px-3 py-2.5">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={state.isRecurring}
+                    onChange={(event) =>
+                      setState((current) => ({
+                        ...current,
+                        isRecurring: event.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-white/20 accent-brand-500"
+                  />
+                  Repeat automatically
+                </label>
+                {state.isRecurring && (
+                  <select
+                    id="recurringFrequency"
+                    value={state.recurringFrequency}
+                    onChange={handleChange}
+                    className="field !h-8 !w-auto text-sm"
+                  >
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="note" className={fieldLabel}>
+                  Note{" "}
+                  <span className="font-normal text-slate-600">optional</span>
+                </label>
+                <textarea
+                  id="note"
+                  rows="2"
+                  placeholder="Anything worth remembering"
+                  value={state.note}
+                  onChange={handleChange}
+                  className="field resize-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <button type="submit" disabled={saving} className="btn-primary w-full">
+            {saving ? "Saving…" : isEditing ? "Save changes" : "Add entry"}
           </button>
         </form>
-      </div>
+      </section>
     </div>
-  );
-}
-
-function Category({ onChange, value }) {
-  return (
-    <select id="category" required="" value={value} onChange={onChange}>
-      <optgroup label="Expenses">
-        <option value="bills">Bills</option>
-        <option value="order">Online Order</option>
-        <option value="rent">Rent</option>
-        <option value="home">Home</option>
-        <option value="food">Food</option>
-        <option value="medical">Medical</option>
-      </optgroup>
-      <optgroup label="Leisure">
-        <option value="entertainment">Entertainment</option>
-        <option value="shopping">Shopping</option>
-        <option value="travel">Travel</option>
-        <option value="sports">Sports</option>
-      </optgroup>
-      <optgroup label="Payments">
-        <option value="debt">Debt</option>
-        <option value="friends">Friends</option>
-      </optgroup>
-      <optgroup label="Income">
-        <option value="salary">Salary</option>
-        <option value="savings">Savings</option>
-      </optgroup>
-      <optgroup label="Investment">
-        <option value="stock">Stock</option>
-        <option value="post office">Post Office</option>
-      </optgroup>
-      <optgroup label="Tax">
-        <option value="tax">Tax</option>
-      </optgroup>
-      <option value="other">Others</option>
-    </select>
   );
 }
 
@@ -353,66 +405,61 @@ export function AddButton({
   type,
   setAPICall,
   nameSuggestions,
-  onEditSuccess,
-  onEditFailure,
   onAddSuccess,
 }) {
-  const isNew = useRef(false);
+  const addingNew = useRef(false);
 
   useEffect(() => {
-    isNew.current = false;
+    if (!show) addingNew.current = false;
   }, [show]);
 
-  const handleClick = () => {
-    isNew.current = true;
-    setShowFrom((prev) => !prev);
+  const openNew = () => {
+    addingNew.current = true;
+    setShowFrom(true);
   };
+
+  const initialState =
+    !addingNew.current && editData
+      ? {
+          ...editData,
+          eventDate: editData.eventDate || new Date().toISOString(),
+        }
+      : {
+          ...EMPTY_ENTRY,
+          type: type !== EXPENSE_TYPE.DASHBOARD ? type : EXPENSE_TYPE.EXPENSE,
+        };
 
   return (
     <>
-      <div className="addBtn">
-        <button onClick={handleClick}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 5v14M5 12h14"></path>
-          </svg>
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={openNew}
+        className={[
+          "fixed z-40 flex h-14 w-14 items-center justify-center rounded-2xl",
+          "bg-brand-500 text-white shadow-lg shadow-brand-500/30",
+          "transition hover:bg-brand-600 active:scale-95",
+          "bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4",
+          "md:bottom-6 md:right-6",
+        ].join(" ")}
+        aria-label="Add entry"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="h-6 w-6"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
 
       {show && (
         <Form
-          setShow={() => setShowFrom((prev) => !prev)}
-          propsState={
-            !isNew.current && editData
-              ? {
-                  ...editData,
-                  eventDate: editData.eventDate
-                    ? new Date(editData.eventDate).toISOString()
-                    : new Date().toISOString(),
-                }
-              : {
-                  type: type !== "DASHBOARD" ? type : EXPENSE_TYPE.INCOME,
-                  name: "",
-                  amount: 0,
-                  eventDate: new Date().toISOString(),
-                  category: "food",
-                  note: "",
-                  isEdit: false,
-                }
-          }
+          setShow={() => setShowFrom(false)}
+          propsState={initialState}
           setAPICall={setAPICall}
           nameSuggestions={nameSuggestions}
-          onEditSuccess={onEditSuccess}
-          onEditFailure={onEditFailure}
           onAddSuccess={onAddSuccess}
         />
       )}

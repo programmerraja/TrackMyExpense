@@ -56,8 +56,11 @@ export default {
     return axios.post("/api/v1/signin/", userCred);
   },
 
-  getExpense: function (type, params) {
-    return axios.get(`/api/v1/expense/?type=${type}&${params}`);
+  getExpense: function (type, params, workspaceId) {
+    const query = new URLSearchParams(params);
+    query.set("type", type);
+    if (workspaceId) query.set("workspaceId", workspaceId);
+    return axios.get(`/api/v1/expense/?${query.toString()}`);
   },
   addExpense: function (body) {
     return axios.post(`/api/v1/expense/`, body);
@@ -68,8 +71,28 @@ export default {
   processRecurring: function () {
     return axios.post(`/api/v1/expense/recurring`);
   },
-  searchExpense: function (query) {
-    return axios.get(`/api/v1/expense/search?q=${query}`);
+  searchExpense: function (query, workspaceId) {
+    const params = new URLSearchParams({ q: query });
+    if (workspaceId) params.set("workspaceId", workspaceId);
+    return axios.get(`/api/v1/expense/search?${params.toString()}`);
+  },
+  getPeople: function () {
+    return axios.get(`/api/v1/expense/people`);
+  },
+  getBankMappings: function () {
+    return axios.get("/api/v1/expense/bank-mappings");
+  },
+  saveBankMapping: function (mapping) {
+    return axios.put("/api/v1/expense/bank-mappings", mapping);
+  },
+  deleteBankMapping: function (id) {
+    return axios.delete(`/api/v1/expense/bank-mappings/${id}`);
+  },
+  getWorkspaces: function () {
+    return axios.get("/api/v1/workspaces");
+  },
+  createWorkspace: function (name) {
+    return axios.post("/api/v1/workspaces", { name });
   },
   getPriceTracking: function (type = "gold") {
     return axios

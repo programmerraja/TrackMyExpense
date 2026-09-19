@@ -1,63 +1,36 @@
-import React from 'react';
-import './style.css';
+import React from "react";
 
 function FilterComponent({ filters, onFilterChange, categories, isDebtType }) {
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    let updatedValue = value;
-
-    // if (name === 'minAmount' || name === 'maxAmount') {
-    //   updatedValue = value === '' ? '' : parseFloat(value);
-    //   if (isNaN(updatedValue)) return; // Ignore non-numeric inputs
-    // }
-
-    onFilterChange({ ...filters, [name]: updatedValue });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    onFilterChange({ ...filters, [name]: value });
   };
 
   return (
-    <div className="filter-component">
+    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
       <select
         name={isDebtType ? "name" : "category"}
         value={isDebtType ? filters.name : filters.category}
-        onChange={handleInputChange}
-        className="filter-select"
+        onChange={handleChange}
+        className="field capitalize"
       >
-        <option value="">All {isDebtType ? "Names" : "Categories"}</option>
-        {categories.map((item) => (
+        <option value="">
+          All {isDebtType ? "people" : "categories"}
+        </option>
+        {categories.filter(Boolean).map((item) => (
           <option key={item} value={item}>
             {item}
           </option>
         ))}
       </select>
-      {/* <div className="filter-input-group">
-        <input
-          type="number"
-          name="minAmount"
-          placeholder="Min Amount"
-          value={filters.minAmount}
-          onChange={handleInputChange}
-          className="filter-input"
-          min="0"
-          step="any"
-        />
-        <input
-          type="number"
-          name="maxAmount"
-          placeholder="Max Amount"
-          value={filters.maxAmount}
-          onChange={handleInputChange}
-          className="filter-input"
-          min="0"
-          step="any"
-        />
-      </div> */}
+
       <input
-        type="text"
+        type="search"
         name="noteSearch"
-        placeholder="Search in notes"
+        placeholder="Search notes"
         value={filters.noteSearch}
-        onChange={handleInputChange}
-        className="filter-input filter-search"
+        onChange={handleChange}
+        className="field"
       />
     </div>
   );

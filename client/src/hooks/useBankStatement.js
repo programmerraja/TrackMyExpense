@@ -1,6 +1,6 @@
-// React hook for managing bank statement state
-// Handles file upload, transaction data, filtering, and session management
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import API from "../utils/API";
+import { useWorkspace } from "../context/WorkspaceContext";
 import {
   saveBankStatement,
   loadBankStatement,
@@ -10,50 +10,58 @@ import {
   loadUploadSession,
   saveFilters,
   loadFilters,
-  saveChartData,
-  loadChartData,
+  clearStatementData,
 } from "../utils/sessionStorage";
 
+const EMPTY_FILTERS = {
+  dateRange: { start: null, end: null },
+  searchText: "",
+  transactionType: "all",
+  amountRange: { min: null, max: null },
+};
+
 export const useBankStatement = (statementId = null) => {
-  // Core state
+  const { activeWorkspaceId } = useWorkspace();
   const [bankStatement, setBankStatement] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [uploadSession, setUploadSession] = useState(null);
-  const [filters, setFilters] = useState({
-    dateRange: { start: null, end: null },
-    searchText: "",
-    transactionType: "all",
-    amountRange: { min: null, max: null },
-  });
-  const [chartSettings, setChartSettings] = useState({
-    chartType: "bar",
-    groupBy: "date",
-    timeRange: "monthly",
-  });
-
-  // UI state
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [mappings, setMappings] = useState([]);
+  const [mappingsLoading, setMappingsLoading] = useState(true);
   const [selectedTransactions, setSelectedTransactions] = useState([]);
   const [importStatus, setImportStatus] = useState({
     inProgress: false,
     success: 0,
+    duplicates: 0,
     total: 0,
     errors: [],
   });
 
-  // Load data on mount
   useEffect(() => {
-    if (statementId) {
-      loadStatementData(statementId);
+    API.getBankMappings()
+      .then((response) => setMappings(response.data.data || []))
+      .catch(() => setError("Could not load your saved bank mappings."))
+      .finally(() => setMappingsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!statementId) return;
+    const statement = loadBankStatement(statementId);
+    if (!statement) return;
+    setBankStatement(statement);
+    setTransactions(loadTransactions(statementId));
+    const session = loadUploadSession(statementId);
+    if (session) {
+      setUploadSession(session);
+      setSelectedTransactions(session.selectedTransactionIds || []);
     }
+    setFilters(loadFilters(statementId));
   }, [statementId]);
 
-  // Save data when it changes
   useEffect(() => {
-    if (bankStatement) {
-      saveBankStatement(bankStatement);
-    }
+    if (bankStatement) saveBankStatement(bankStatement);
   }, [bankStatement]);
 
   useEffect(() => {
@@ -63,34 +71,25 @@ export const useBankStatement = (statementId = null) => {
   }, [transactions, bankStatement]);
 
   useEffect(() => {
-    if (uploadSession) {
-      saveUploadSession(uploadSession);
-    }
+    if (uploadSession) saveUploadSession(uploadSession);
   }, [uploadSession]);
 
   useEffect(() => {
-    if (bankStatement) {
-      saveFilters(bankStatement.id, filters);
-    }
+    if (bankStatement) saveFilters(bankStatement.id, filters);
   }, [filters, bankStatement]);
 
-  const loadStatementData = useCallback((id) => {
-    const statement = loadBankStatement(id);
-    if (statement) {
-      setBankStatement(statement);
-      const loadedTransactions = loadTransactions(id);
-      setTransactions(loadedTransactions);
-
-      const session = loadUploadSession(id);
-      if (session) {
-        setUploadSession(session);
-        setSelectedTransactions(session.selectedTransactionIds || []);
-      }
-
-      const loadedFilters = loadFilters(id);
-      setFilters(loadedFilters);
-    }
-  }, []);
+  const persistSelection = useCallback(
+    (ids) => {
+      if (!bankStatement) return;
+      setUploadSession({
+        id: `session_${Date.now()}`,
+        bankStatementId: bankStatement.id,
+        selectedTransactionIds: ids,
+        filters,
+      });
+    },
+    [bankStatement, filters],
+  );
 
   const createNewStatement = useCallback((file) => {
     const newStatement = {
@@ -103,200 +102,114 @@ export const useBankStatement = (statementId = null) => {
       errorMessage: null,
       totalTransactions: 0,
     };
-
     setBankStatement(newStatement);
     setTransactions([]);
     setError(null);
-
     return newStatement;
   }, []);
 
-  const updateStatementStatus = useCallback(
-    (status, errorMessage = null) => {
-      if (bankStatement) {
-        setBankStatement((prev) => ({
-          ...prev,
-          processingStatus: status,
-          errorMessage,
-        }));
-      }
-    },
-    [bankStatement],
-  );
-
-  const setStatementTransactions = useCallback(
-    (newTransactions) => {
-      setTransactions(newTransactions);
-      if (bankStatement) {
-        setBankStatement((prev) => ({
-          ...prev,
-          totalTransactions: newTransactions.length,
-          processingStatus: "completed",
-        }));
-      }
-    },
-    [bankStatement],
-  );
-
-  const updateTransaction = useCallback((transactionId, updates) => {
-    setTransactions((prev) =>
-      prev.map((txn) =>
-        txn.id === transactionId ? { ...txn, ...updates } : txn,
-      ),
+  const setStatementTransactions = useCallback((newTransactions) => {
+    setTransactions(newTransactions);
+    setBankStatement((prev) =>
+      prev
+        ? {
+            ...prev,
+            totalTransactions: newTransactions.length,
+            processingStatus: "completed",
+          }
+        : prev,
     );
   }, []);
-
-  const updateTransactionNarration = useCallback(
-    (transactionId, narration) => {
-      updateTransaction(transactionId, { narration });
-    },
-    [updateTransaction],
-  );
 
   const toggleTransactionSelection = useCallback(
     (transactionId) => {
       setSelectedTransactions((prev) => {
-        const isSelected = prev.includes(transactionId);
-        const newSelection = isSelected
+        const next = prev.includes(transactionId)
           ? prev.filter((id) => id !== transactionId)
           : [...prev, transactionId];
-
-        // Update upload session
-        if (bankStatement) {
-          const newSession = {
-            id: `session_${Date.now()}`,
-            bankStatementId: bankStatement.id,
-            selectedTransactionIds: newSelection,
-            filters,
-            chartSettings,
-          };
-          setUploadSession(newSession);
-        }
-
-        return newSelection;
+        persistSelection(next);
+        return next;
       });
     },
-    [bankStatement, filters, chartSettings],
+    [persistSelection],
   );
 
   const selectAllTransactions = useCallback(() => {
     const allIds = transactions.map((txn) => txn.id);
     setSelectedTransactions(allIds);
-
-    if (bankStatement) {
-      const newSession = {
-        id: `session_${Date.now()}`,
-        bankStatementId: bankStatement.id,
-        selectedTransactionIds: allIds,
-        filters,
-        chartSettings,
-      };
-      setUploadSession(newSession);
-    }
-  }, [transactions, bankStatement, filters, chartSettings]);
+    persistSelection(allIds);
+  }, [transactions, persistSelection]);
 
   const clearSelection = useCallback(() => {
     setSelectedTransactions([]);
-
-    if (bankStatement) {
-      const newSession = {
-        id: `session_${Date.now()}`,
-        bankStatementId: bankStatement.id,
-        selectedTransactionIds: [],
-        filters,
-        chartSettings,
-      };
-      setUploadSession(newSession);
-    }
-  }, [bankStatement, filters, chartSettings]);
+    persistSelection([]);
+  }, [persistSelection]);
 
   const updateFilters = useCallback((newFilters) => {
     setFilters((prev) => ({ ...prev, ...newFilters }));
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters({
-      dateRange: { start: null, end: null },
-      searchText: "",
-      transactionType: "all",
-      amountRange: { min: null, max: null },
-    });
+    setFilters(EMPTY_FILTERS);
   }, []);
 
-  const updateChartSettings = useCallback((newSettings) => {
-    setChartSettings((prev) => ({ ...prev, ...newSettings }));
-  }, []);
+  const filteredTransactions = useMemo(
+    () =>
+      transactions.filter((txn) => {
+        if (
+          filters.dateRange.start &&
+          txn.transactionDate < filters.dateRange.start
+        ) {
+          return false;
+        }
+        if (
+          filters.dateRange.end &&
+          txn.transactionDate > filters.dateRange.end
+        ) {
+          return false;
+        }
+        if (
+          filters.searchText &&
+          !txn.narration.toLowerCase().includes(filters.searchText.toLowerCase())
+        ) {
+          return false;
+        }
+        if (filters.transactionType === "debit" && txn.debitAmount <= 0) {
+          return false;
+        }
+        if (filters.transactionType === "credit" && txn.creditAmount <= 0) {
+          return false;
+        }
+        const amount =
+          txn.debitAmount > 0 ? txn.debitAmount : txn.creditAmount;
+        if (filters.amountRange.min && amount < filters.amountRange.min) {
+          return false;
+        }
+        if (filters.amountRange.max && amount > filters.amountRange.max) {
+          return false;
+        }
+        return true;
+      }),
+    [transactions, filters],
+  );
 
-  const getFilteredTransactions = useCallback(() => {
-    return transactions.filter((txn) => {
-      // Date range filter
-      if (
-        filters.dateRange.start &&
-        txn.transactionDate < filters.dateRange.start
-      ) {
-        return false;
-      }
-      if (
-        filters.dateRange.end &&
-        txn.transactionDate > filters.dateRange.end
-      ) {
-        return false;
-      }
-
-      // Search text filter
-      if (
-        filters.searchText &&
-        !txn.narration.toLowerCase().includes(filters.searchText.toLowerCase())
-      ) {
-        return false;
-      }
-
-      // Transaction type filter
-      if (filters.transactionType === "debit" && txn.debitAmount <= 0) {
-        return false;
-      }
-      if (filters.transactionType === "credit" && txn.creditAmount <= 0) {
-        return false;
-      }
-
-      // Amount range filter
-      const amount = txn.debitAmount > 0 ? txn.debitAmount : txn.creditAmount;
-      if (filters.amountRange.min && amount < filters.amountRange.min) {
-        return false;
-      }
-      if (filters.amountRange.max && amount > filters.amountRange.max) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [transactions, filters]);
-
-  const getSummaryData = useCallback(() => {
-    const filteredTxs = getFilteredTransactions();
-
-    const totalIncome = filteredTxs.reduce(
+  const summaryData = useMemo(() => {
+    const totalIncome = filteredTransactions.reduce(
       (sum, txn) => sum + txn.creditAmount,
       0,
     );
-    const totalExpenses = filteredTxs.reduce(
+    const totalExpenses = filteredTransactions.reduce(
       (sum, txn) => sum + txn.debitAmount,
       0,
     );
-    const netAmount = totalIncome - totalExpenses;
-
     return {
       totalIncome,
       totalExpenses,
-      netAmount,
-      totalTransactions: filteredTxs.length,
+      netAmount: totalIncome - totalExpenses,
+      totalTransactions: filteredTransactions.length,
       selectedCount: selectedTransactions.length,
     };
-  }, [getFilteredTransactions, selectedTransactions]);
-
-  const setLoadingState = useCallback((isLoading) => {
-    setLoading(isLoading);
-  }, []);
+  }, [filteredTransactions, selectedTransactions]);
 
   const setErrorState = useCallback((errorMessage) => {
     setError(errorMessage);
@@ -307,81 +220,129 @@ export const useBankStatement = (statementId = null) => {
     setError(null);
   }, []);
 
-  const importTransactions = useCallback(async (mappedExpenses, onComplete) => {
-    setImportStatus({
-      inProgress: true,
-      success: 0,
-      total: mappedExpenses.length,
-      errors: [],
-    });
+  const resetStatement = useCallback(() => {
+    if (bankStatement) clearStatementData(bankStatement.id);
+    setBankStatement(null);
+    setTransactions([]);
+    setSelectedTransactions([]);
+    setUploadSession(null);
+    setFilters(EMPTY_FILTERS);
+  }, [bankStatement]);
 
-    let successCount = 0;
-    const errors = [];
+  const importTransactions = useCallback(
+    async (mappedExpenses, mappingsToSave, onComplete) => {
+      setImportStatus({
+        inProgress: true,
+        success: 0,
+        duplicates: 0,
+        total: mappedExpenses.length,
+        errors: [],
+      });
 
-    const API_MOD = await import("../utils/API");
-    const API = API_MOD.default;
-
-    for (const expense of mappedExpenses) {
       try {
-        const { tempId, ...expenseData } = expense;
-        await API.addExpense(expenseData);
-        successCount++;
-        setImportStatus((prev) => ({ ...prev, success: successCount }));
+        const responses = await Promise.all(
+          mappingsToSave.map((mapping) => API.saveBankMapping(mapping)),
+        );
+        const savedMappings = responses.map((response) => response.data.data);
+        setMappings((current) => [
+          ...savedMappings,
+          ...current.filter(
+            (mapping) =>
+              !savedMappings.some(
+                (saved) =>
+                  saved.matchText === mapping.matchText &&
+                  saved.direction === mapping.direction,
+              ),
+          ),
+        ]);
       } catch (err) {
-        errors.push({
-          name: expense.name,
-          error: err.response?.data?.error || err.message,
+        setImportStatus((prev) => ({
+          ...prev,
+          inProgress: false,
+          errors: [{ name: "Mappings", error: "Could not save bank mappings" }],
+        }));
+        return;
+      }
+
+      let successCount = 0;
+      let duplicateCount = 0;
+      const errors = [];
+
+      for (const expense of mappedExpenses) {
+        try {
+          const { tempId, ...expenseData } = expense;
+          await API.addExpense({
+            ...expenseData,
+            workspaceId: activeWorkspaceId,
+          });
+          successCount++;
+          setImportStatus({
+            inProgress: true,
+            success: successCount,
+            duplicates: duplicateCount,
+            total: mappedExpenses.length,
+            errors: [],
+          });
+        } catch (err) {
+          if (err.response?.status === 409) {
+            duplicateCount++;
+            setImportStatus({
+              inProgress: true,
+              success: successCount,
+              duplicates: duplicateCount,
+              total: mappedExpenses.length,
+              errors: [],
+            });
+            continue;
+          }
+          errors.push({
+            name: expense.name,
+            error: err.response?.data?.error || err.message,
+          });
+        }
+      }
+
+      setImportStatus((prev) => ({
+        ...prev,
+        inProgress: false,
+        errors,
+      }));
+
+      if (onComplete) {
+        onComplete({
+          success: successCount,
+          duplicates: duplicateCount,
+          total: mappedExpenses.length,
+          errors,
         });
       }
-    }
-
-    setImportStatus((prev) => ({
-      ...prev,
-      inProgress: false,
-      errors,
-    }));
-
-    if (onComplete) {
-      onComplete({
-        success: successCount,
-        total: mappedExpenses.length,
-        errors,
-      });
-    }
-  }, []);
+    },
+    [activeWorkspaceId],
+  );
 
   return {
-    // State
     bankStatement,
     transactions,
-    uploadSession,
     filters,
-    chartSettings,
     selectedTransactions,
     loading,
+    mappings,
+    mappingsLoading,
     error,
     importStatus,
-
-    // Computed values
-    filteredTransactions: getFilteredTransactions(),
-    summaryData: getSummaryData(),
-
-    // Actions
+    filteredTransactions,
+    summaryData,
     createNewStatement,
-    updateStatementStatus,
     setStatementTransactions,
-    updateTransaction,
-    updateTransactionNarration,
     toggleTransactionSelection,
     selectAllTransactions,
     clearSelection,
     updateFilters,
     clearFilters,
-    updateChartSettings,
-    setLoadingState,
+    setLoadingState: setLoading,
     setErrorState,
     clearError,
-    loadStatementData,
+    resetStatement,
     importTransactions,
   };
 };

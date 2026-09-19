@@ -10,32 +10,19 @@ import { useToast } from "../Toast";
 
 import { SquareLoader, Table, AddButton, FilterComponent } from "..";
 import API from "../../utils/API";
-import "./style.css";
-
-export const EXPENSE_TYPE = {
-  INCOME: "INCOME",
-  EXPENSE: "EXPENSE",
-  DEBT_BOUGHT: "DEBT_BOUGHT",
-  DEBT: "DEBT",
-  DEBT_GIVEN: "DEBT_GIVEN",
-  INVESTMENT: "INVESTMENT",
-  DASHBOARD: "DASHBOARD",
-  INCOME_TAX: "INCOME_TAX",
-};
-export const URL_MAPPER = {
-  INCOME: "income",
-  EXPENSE: "expense",
-  DEBT_BOUGHT: "debt",
-  DEBT: "debt",
-  DEBT_GIVEN: "debt",
-  INVESTMENT: "investment",
-  DASHBOARD: "#",
-};
+import {
+  EXPENSE_TYPE,
+  FAMILY_CATEGORY,
+  WORKSPACE_SCOPED_TYPES,
+  URL_MAPPER,
+} from "../../constants/expense";
+import { useWorkspace } from "../../context/WorkspaceContext";
 
 const TYPE_LABELS = {
   DASHBOARD: "Dashboard",
   INCOME: "Income",
-  EXPENSE: "Expenses",
+  EXPENSE: "My Spending",
+  FAMILY: "Sent Home",
   DEBT: "Debt",
   DEBT_BOUGHT: "Debt",
   DEBT_GIVEN: "Debt",
@@ -43,20 +30,56 @@ const TYPE_LABELS = {
   INCOME_TAX: "Income Tax",
 };
 
-const AMOUNT_COLOR_MAP = {
-  INCOME: "#22c55e",
-  EXPENSE: "#ef4444",
-  INVESTMENT: "#3b82f6",
-  BALANCE: "#a78bfa",
-  DEBT: "#f59e0b",
-  DEBT_BOUGHT: "#f59e0b",
-  DEBT_GIVEN: "#f59e0b",
+const NAME_OR_CATEGORY_TYPES = [
+  EXPENSE_TYPE.DEBT,
+  EXPENSE_TYPE.DEBT_BOUGHT,
+  EXPENSE_TYPE.DEBT_GIVEN,
+  EXPENSE_TYPE.EXPENSE,
+];
+
+const PRESETS = [
+  { id: "thisMonth", label: "This month" },
+  { id: "lastMonth", label: "Last month" },
+  { id: "last3", label: "3 months" },
+  { id: "thisYear", label: "This year" },
+];
+
+// Each bucket keeps its colour wherever it is shown.
+const AMOUNT_CLASS_MAP = {
+  INCOME: "text-money-in",
+  EXPENSE: "text-money-out",
+  FAMILY: "text-money-family",
+  INVESTMENT: "text-money-tax",
+  BALANCE: "text-slate-100",
+  DEBT: "text-money-debt",
+  DEBT_BOUGHT: "text-money-debt",
+  DEBT_GIVEN: "text-money-debt",
 };
+
+function EmptyState({ icon, title, subtitle, actionLabel, onAction }) {
+  return (
+    <div className="card flex flex-col items-center px-6 py-12 text-center">
+      <p className="text-4xl">{icon}</p>
+      <p className="mt-3 text-lg font-semibold">{title}</p>
+      <p className="mt-1 max-w-sm text-sm text-slate-400">{subtitle}</p>
+      {actionLabel && (
+        <button onClick={onAction} className="btn-primary mt-4">
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function Dashboard({ type }) {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const { addToast } = useToast();
+  const { activeWorkspace, activeWorkspaceId } = useWorkspace();
+  const workspaceId =
+    type === EXPENSE_TYPE.DASHBOARD || WORKSPACE_SCOPED_TYPES.includes(type)
+      ? activeWorkspaceId
+      : "";
 
   const [apiCall, setAPICall] = useState(false);
   const [showForm, setShowFrom] = useState(false);
@@ -76,17 +99,12 @@ function Dashboard({ type }) {
       : new Date().toISOString(),
   });
 
-  const [privacyMode, setPrivacyMode] = useState(
-    localStorage.getItem("privacyMode") === "true",
-  );
-
   const editDataRef = useRef(undefined);
 
   const {
     loading,
     error,
     dashboardData,
-    vaultBalances,
     tableData,
     setDashboardData,
     setTableData,
@@ -97,16 +115,8 @@ function Dashboard({ type }) {
     queryParams.get("name"),
     queryParams.get("category"),
     isFetchAllData,
-    privacyMode ? "primary" : undefined,
+    workspaceId,
   );
-
-  const togglePrivacyMode = useCallback(() => {
-    setPrivacyMode((prev) => {
-      const newVal = !prev;
-      localStorage.setItem("privacyMode", newVal);
-      return newVal;
-    });
-  }, []);
 
   useEffect(() => {
     // Automatically process recurring expenses on mount
@@ -151,22 +161,6 @@ function Dashboard({ type }) {
             "error",
           );
         });
-    },
-    [addToast],
-  );
-
-  const handleEditSuccess = useCallback(() => {
-    addToast("Item updated successfully", "success");
-    setAPICall((e) => !e);
-    setShowFrom(false);
-  }, [addToast]);
-
-  const handleEditFailure = useCallback(
-    (error) => {
-      addToast(
-        "Failed to update item: " + (error.message || "Unknown error"),
-        "error",
-      );
     },
     [addToast],
   );
@@ -223,14 +217,8 @@ function Dashboard({ type }) {
   const [filters, setFilters] = useState({
     category: "",
     name: "",
-    minAmount: "",
-    maxAmount: "",
     noteSearch: "",
   });
-
-  const handleFilterChange = useCallback((newFilters) => {
-    setFilters(newFilters);
-  }, []);
 
   const filteredTableData = useMemo(() => {
     if (!tableData || !tableData.data || type === EXPENSE_TYPE.DASHBOARD)
@@ -242,30 +230,17 @@ function Dashboard({ type }) {
           ? !filters.name || item.name === filters.name
           : !filters.category || item.category === filters.category;
 
-      const minAmount =
-        filters.minAmount !== "" ? parseFloat(filters.minAmount) : null;
-      const maxAmount =
-        filters.maxAmount !== "" ? parseFloat(filters.maxAmount) : null;
-
-      const amountMatch =
-        (minAmount === null || item.amount >= minAmount) &&
-        (maxAmount === null || item.amount <= maxAmount);
-
       const noteMatch =
         !filters.noteSearch ||
         (item.note &&
           item.note.toLowerCase().includes(filters.noteSearch.toLowerCase()));
 
-      return categoryMatch && amountMatch && noteMatch;
+      return categoryMatch && noteMatch;
     });
   }, [tableData, filters, type]);
 
   const handleExportCSV = useCallback(() => {
-    const data =
-      type === EXPENSE_TYPE.DASHBOARD
-        ? tableData?.data || []
-        : filteredTableData;
-    if (!data.length) {
+    if (!filteredTableData.length) {
       addToast("No data to export", "error");
       return;
     }
@@ -287,7 +262,7 @@ function Dashboard({ type }) {
         : str;
     };
 
-    const rows = data.map((item) => [
+    const rows = filteredTableData.map((item) => [
       escapeCSV(item.name),
       item.amount,
       escapeCSV(item.category),
@@ -308,18 +283,17 @@ function Dashboard({ type }) {
     link.click();
     URL.revokeObjectURL(url);
     addToast(`Exported ${rows.length} records`, "success");
-  }, [type, tableData, filteredTableData, addToast]);
+  }, [type, filteredTableData, addToast]);
 
   const filteredDashboardData = useMemo(() => {
     if (type === EXPENSE_TYPE.DASHBOARD) return dashboardData;
     if (!filteredTableData.length) return {};
 
-    let temp = {};
-    filteredTableData.forEach((item) => {
+    return filteredTableData.reduce((totals, item) => {
       const key = type === EXPENSE_TYPE.DEBT ? item.name : item.category;
-      temp[key] = (temp[key] || 0) + item.amount;
-    });
-    return temp;
+      totals[key] = (totals[key] || 0) + item.amount;
+      return totals;
+    }, {});
   }, [filteredTableData, type, dashboardData]);
 
   const handleAddSuccess = useCallback(
@@ -353,232 +327,213 @@ function Dashboard({ type }) {
         editData={editDataRef.current}
         setAPICall={setAPICall}
         nameSuggestions={nameSuggestions}
-        onEditSuccess={handleEditSuccess}
-        onEditFailure={handleEditFailure}
         onAddSuccess={handleAddSuccess}
       />
-      <div className="dashboard">
-        <div className="dashboardTitleGroup">
-          <h3>{TYPE_LABELS[type] || type}</h3>
-          <span className="dashboardPeriod">
-            {isFetchAllData
-              ? "All Time"
-              : new Date(date.start).toLocaleDateString("en-IN", {
-                  month: "long",
-                  year: "numeric",
-                })}
-          </span>
-        </div>
-        <div className="dashboardHeader">
-          <div className="dateInputs">
-            <input
-              type="date"
-              onChange={handleDateChange("start")}
-              value={date.start.substring(0, 10)}
-            />
-            <input
-              type="date"
-              value={date.end.substring(0, 10)}
-              onChange={handleDateChange("end")}
-            />
+      <div className="page-wide">
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="page-title">{TYPE_LABELS[type] || type}</h1>
+            <p className="page-subtitle">
+              {workspaceId && activeWorkspace
+                ? `${activeWorkspace.name} · `
+                : ""}
+              {isFetchAllData
+                ? "All time"
+                : `${new Date(date.start).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                  })} – ${new Date(date.end).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}`}
+            </p>
           </div>
-          <div className="button-group">
-            <button onClick={handleApply}>Apply Filter</button>
-            <button
-              onClick={handleAll}
-              className={isFetchAllData ? "" : "secondary"}
-            >
-              All Time
-            </button>
-            {type !== EXPENSE_TYPE.DASHBOARD && (
-              <button
-                onClick={handleExportCSV}
-                className="secondary"
-                title="Export to CSV"
-              >
-                📥 Export
-              </button>
-            )}
-            <button
-              onClick={togglePrivacyMode}
-              className={privacyMode ? "warning" : "secondary"}
-              title={
-                privacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"
-              }
-            >
-              {privacyMode ? "🕵️‍♂️ Privacy: ON" : "🔓 Privacy: OFF"}
-            </button>
-          </div>
-          <div className="presetGroup">
-            <button
-              className="presetBtn"
-              onClick={() => handlePreset("thisMonth")}
-            >
-              This Month
-            </button>
-            <button
-              className="presetBtn"
-              onClick={() => handlePreset("lastMonth")}
-            >
-              Last Month
-            </button>
-            <button className="presetBtn" onClick={() => handlePreset("last3")}>
-              Last 3 Months
-            </button>
-            <button
-              className="presetBtn"
-              onClick={() => handlePreset("thisYear")}
-            >
-              This Year
-            </button>
-          </div>
-          {type === EXPENSE_TYPE.DASHBOARD && !privacyMode && Object.keys(vaultBalances || {}).length > 0 && (
-            <div className="vaultSummaryRow">
-              <div className="vaultSummaryItem primary">
-                <span className="vaultLabel">Primary</span>
-                <span className="vaultValue">₹ {API.numberWithCommas(vaultBalances.primary || 0)}</span>
-              </div>
-              <div className="vaultSummaryItem emergency">
-                <span className="vaultLabel">Emergency Fund</span>
-                <span className="vaultValue">₹ {API.numberWithCommas(vaultBalances.emergency || 0)}</span>
-              </div>
-              <div className="vaultSummaryItem debt">
-                <span className="vaultLabel">Debt / Friends</span>
-                <span className="vaultValue">₹ {API.numberWithCommas(vaultBalances.debt || 0)}</span>
-              </div>
-            </div>
-          )}
           {type !== EXPENSE_TYPE.DASHBOARD && (
-            <FilterComponent
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              categories={Array.from(
-                new Set(
-                  tableData?.data?.map((item) =>
-                    type === EXPENSE_TYPE.DEBT ? item.name : item.category,
-                  ) || [],
-                ),
-              )}
-              isDebtType={type === EXPENSE_TYPE.DEBT}
-            />
+            <button
+              onClick={handleExportCSV}
+              className="btn-ghost"
+              title="Export to CSV"
+            >
+              Export CSV
+            </button>
           )}
+        </header>
+
+        <div className="mb-5 flex flex-wrap gap-2">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              className="chip"
+              onClick={() => handlePreset(preset.id)}
+            >
+              {preset.label}
+            </button>
+          ))}
+          <button
+            onClick={handleAll}
+            className={`chip ${isFetchAllData ? "chip-active" : ""}`}
+          >
+            All time
+          </button>
         </div>
-        {type === EXPENSE_TYPE.DEBT && (
-          <p className="debtHelperText">
-            Positive amounts = money you owe &nbsp;|&nbsp; Negative amounts =
-            money owed to you
-          </p>
-        )}
-        {error && (
-          <div className="emptyState">
-            <p className="emptyStateIcon">⚠️</p>
-            <p className="emptyStateTitle">Something went wrong</p>
-            <p className="emptyStateSubtitle">{error}</p>
-            <button onClick={() => setAPICall((e) => !e)}>Retry</button>
-          </div>
-        )}
-        {!error &&
-          !loading &&
-          (!dashboardData ||
-            (Object.keys(dashboardData).length === 0 &&
-              (!filteredTableData || filteredTableData.length === 0))) && (
-            <div className="emptyState">
-              <p className="emptyStateIcon">📊</p>
-              <p className="emptyStateTitle">No data yet</p>
-              <p className="emptyStateSubtitle">
-                {type === EXPENSE_TYPE.DASHBOARD
-                  ? "Start by adding your first income or expense"
-                  : `No ${(TYPE_LABELS[type] || type).toLowerCase()} entries found for this period`}
+
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="order-2 min-w-0 space-y-5 xl:order-1">
+            {type === EXPENSE_TYPE.DEBT && (
+              <p className="rounded-lg border-l-4 border-money-debt bg-money-debt/10 px-3 py-2.5 text-sm text-slate-300">
+                Positive = money you owe · Negative = money owed to you
               </p>
-              <button onClick={() => setShowFrom(true)}>+ Add Entry</button>
-            </div>
-          )}
-        <div className="priceCardContainer">
-          {!error &&
-            filteredDashboardData &&
-            Object.entries(filteredDashboardData).map(([key, value]) => (
-              <PriceCard
-                key={key}
-                type={type}
-                title={key}
-                amount={value}
-                showLink={true}
-                date={date}
-                isFetchAllData={isFetchAllData}
+            )}
+
+            {error && (
+              <EmptyState
+                icon="⚠️"
+                title="Something went wrong"
+                subtitle={error}
+                actionLabel="Retry"
+                onAction={() => setAPICall((e) => !e)}
               />
-            ))}
+            )}
+
+            {!error &&
+              !loading &&
+              (!dashboardData ||
+                (Object.keys(dashboardData).length === 0 &&
+                  (!filteredTableData || filteredTableData.length === 0))) && (
+                <EmptyState
+                  icon="📊"
+                  title="Nothing here yet"
+                  subtitle={
+                    type === EXPENSE_TYPE.DASHBOARD
+                      ? "Add your first income or expense to get started"
+                      : `No ${(TYPE_LABELS[type] || type).toLowerCase()} entries in this period`
+                  }
+                  actionLabel="Add entry"
+                  onAction={() => setShowFrom(true)}
+                />
+              )}
+
+            {!error && filteredDashboardData && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {Object.entries(filteredDashboardData).map(([key, value]) => (
+                  <PriceCard
+                    key={key}
+                    type={type}
+                    title={key}
+                    amount={value}
+                    date={date}
+                    isFetchAllData={isFetchAllData}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!error &&
+            type !== EXPENSE_TYPE.DASHBOARD &&
+            filteredTableData.length ? (
+              <Table
+                data={filteredTableData}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ) : null}
+          </div>
+
+          <aside className="order-1 space-y-4 xl:order-2 xl:sticky xl:top-6">
+            <section className="card p-4">
+              {/* Date inputs have a wide intrinsic size, so they need min-w-0
+                  or they overflow the card instead of shrinking. */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="min-w-0">
+                  <label htmlFor="range-start" className="label">
+                    From
+                  </label>
+                  <input
+                    id="range-start"
+                    type="date"
+                    className="field min-w-0 px-2"
+                    onChange={handleDateChange("start")}
+                    value={date.start.substring(0, 10)}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <label htmlFor="range-end" className="label">
+                    To
+                  </label>
+                  <input
+                    id="range-end"
+                    type="date"
+                    className="field min-w-0 px-2"
+                    value={date.end.substring(0, 10)}
+                    onChange={handleDateChange("end")}
+                  />
+                </div>
+              </div>
+              <button onClick={handleApply} className="btn-primary mt-3 w-full">
+                Apply
+              </button>
+            </section>
+
+            {type !== EXPENSE_TYPE.DASHBOARD && (
+              <section className="card p-4">
+                <FilterComponent
+                  filters={filters}
+                  onFilterChange={setFilters}
+                  categories={Array.from(
+                    new Set(
+                      tableData?.data?.map((item) =>
+                        type === EXPENSE_TYPE.DEBT ? item.name : item.category,
+                      ) || [],
+                    ),
+                  )}
+                  isDebtType={type === EXPENSE_TYPE.DEBT}
+                />
+              </section>
+            )}
+          </aside>
         </div>
-        {!error &&
-        type !== EXPENSE_TYPE.DASHBOARD &&
-        filteredTableData.length ? (
-          <Table
-            heading={tableData.heading}
-            data={filteredTableData}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        ) : null}
       </div>
     </>
   );
 }
 
-function PriceCard({ type, title, amount, showLink, date, isFetchAllData }) {
+function PriceCard({ type, title, amount, date, isFetchAllData }) {
   const queryParams = new URLSearchParams();
   queryParams.set("start", date.start);
   queryParams.set("end", date.end);
   queryParams.set("all", isFetchAllData);
 
-  const amountColor = AMOUNT_COLOR_MAP[title] || "#1a1a2e";
-
-  function CardWrapper() {
-    return (
-      <div className="priceCard">
-        <div className="d-flex">
-          <h5 className="priceCardTitle">{TYPE_LABELS[title] || title}</h5>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect width="20" height="14" x="2" y="7" rx="2" ry="2"></rect>
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-          </svg>
-        </div>
-        <h1 className="priceCardAmount" style={{ color: amountColor }}>
-          ₹ {API.numberWithCommas(amount)}
-        </h1>
-      </div>
-    );
-  }
-
+  const amountClass = AMOUNT_CLASS_MAP[title] || "text-slate-100";
   const urlKey = type === EXPENSE_TYPE.DEBT ? "name" : "category";
 
-  return showLink ? (
-    <Link
-      to={
-        URL_MAPPER[title]
-          ? `/${URL_MAPPER[title]}?${queryParams.toString()}`
-          : `?${queryParams.toString()}&${urlKey}=${title}`
-      }
-      style={{ textDecoration: "none" }}
-    >
-      <CardWrapper />
+  if (title === "FAMILY") {
+    queryParams.set("category", FAMILY_CATEGORY);
+  }
+
+  const href =
+    title === "FAMILY"
+      ? `/expense?${queryParams.toString()}`
+      : URL_MAPPER[title]
+        ? `/${URL_MAPPER[title]}?${queryParams.toString()}`
+        : `?${queryParams.toString()}&${urlKey}=${title}`;
+
+  return (
+    <Link to={href} className="no-underline">
+      <div className="card h-full p-4 transition hover:border-white/15 hover:bg-ink-800">
+        <p className="truncate text-xs font-medium uppercase tracking-wide text-slate-400">
+          {TYPE_LABELS[title] || title}
+        </p>
+        <p className={`mt-1.5 text-lg font-bold sm:text-xl ${amountClass}`}>
+          ₹{API.numberWithCommas(amount) || 0}
+        </p>
+      </div>
     </Link>
-  ) : (
-    <CardWrapper />
   );
 }
 
-function useFeatchData(type, apiCall, date, name, category, all, vault) {
+function useFeatchData(type, apiCall, date, name, category, all, workspaceId) {
   const [dashboardData, setDashboardData] = useState({});
-  const [vaultBalances, setVaultBalances] = useState({});
   const [tableData, setTableData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -593,91 +548,63 @@ function useFeatchData(type, apiCall, date, name, category, all, vault) {
       queryParams.set("start", date.start);
       queryParams.set("end", date.end);
     }
-    if (vault) {
-      queryParams.set("vault", vault);
-    }
-    if (
-      name &&
-      [
-        EXPENSE_TYPE.DEBT,
-        EXPENSE_TYPE.DEBT_BOUGHT,
-        EXPENSE_TYPE.DEBT_GIVEN,
-        EXPENSE_TYPE.EXPENSE,
-      ].includes(type)
-    ) {
+    if (name && NAME_OR_CATEGORY_TYPES.includes(type)) {
       queryParams.set("name", name);
     }
-    if (
-      category &&
-      [
-        EXPENSE_TYPE.DEBT,
-        EXPENSE_TYPE.DEBT_BOUGHT,
-        EXPENSE_TYPE.DEBT_GIVEN,
-        EXPENSE_TYPE.EXPENSE,
-      ].includes(type)
-    ) {
+    if (category && NAME_OR_CATEGORY_TYPES.includes(type)) {
       queryParams.set("category", category);
     }
     const params = queryParams.toString();
 
-    API.getExpense(type, params)
+    API.getExpense(type, params, workspaceId)
       .then((res) => {
         let temp = {};
-        let finalVaultBals = {};
-
         if (type === EXPENSE_TYPE.DASHBOARD) {
           temp = {
             INCOME: 0,
             BALANCE: 0,
             EXPENSE: 0,
+            FAMILY: 0,
           };
           res.data.data.group.forEach((obj) => {
             temp.BALANCE += obj.amount;
             temp[obj._id] = obj.amount;
           });
 
-          // Process vault balances if provided
-          if (res.data.data.vaultBalances) {
-            res.data.data.vaultBalances.forEach((v) => {
-              finalVaultBals[v._id] = v.amount;
-            });
-          }
         } else {
           res.data.data.group.forEach((obj) => {
             temp[obj._id] = obj.amount;
           });
         }
 
-        const heading = [
-          "name",
-          "amount",
-          "note",
-          "category",
-          "type",
-          "eventDate",
-          "vault",
-        ];
-
-        setTableData({ heading, data: res.data.data.content });
+        setTableData({ data: res.data.data.content });
         setDashboardData(temp);
-        setVaultBalances(finalVaultBals);
         setLoading(false);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
         setError(
+          error?.response?.data?.error ||
           error?.response?.data?.msg ||
             "Failed to load data. Please try again.",
         );
         setLoading(false);
       });
-  }, [type, apiCall, date.start, date.end, name, category, all, vault]);
+  }, [
+    type,
+    apiCall,
+    date.start,
+    date.end,
+    name,
+    category,
+    all,
+    workspaceId,
+  ]);
 
   return {
     loading,
     error,
     dashboardData,
-    vaultBalances,
     tableData,
     setDashboardData,
     setTableData,

@@ -15,6 +15,23 @@ const StockSchema = new mongoose.Schema({
   }
 });
 
+const WorkspaceSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 40
+  },
+  isDefault: {
+    type: Boolean,
+    default: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -45,9 +62,12 @@ const UserSchema = new mongoose.Schema(
     },
     budgetSettings: {
       baseSalaryLimit: { type: Number, default: 0 },
-      autoAllocationVault: { type: String, default: "emergency" },
-      isPrivacyModeEnabled: { type: Boolean, default: false }
-    }
+      autoAllocationVault: { type: String, default: "emergency" }
+    },
+    workspaces: {
+      type: [WorkspaceSchema],
+      default: []
+    },
   },
   { timestamps: true }
 );

@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-ink-950 font-sans text-slate-100 antialiased;
+  }
+
+  /* Date pickers and selects render black-on-black otherwise. */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.6;
+  }
+}
+
+@layer components {
+  /* Every page uses this so the gutters and max width stay in one place. */
+  .page {
+    @apply mx-auto w-full max-w-6xl px-4 pt-6 pb-10 md:px-6 lg:px-8;
+  }
+
+  .page-wide {
+    @apply page max-w-7xl;
+  }
+
+  .page-title {
+    @apply text-[22px] font-bold tracking-tight sm:text-2xl;
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm text-slate-400;
+  }
+
+  .card {
+    @apply rounded-xl bg-ink-900 border border-white/[0.06] shadow-card;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold text-slate-400;
+  }
+
+  /* .field and .btn share a height so they line up side by side in a row. */
+  .field {
+    @apply h-10 w-full rounded-lg bg-ink-800 border border-white/10 px-3
+      text-[15px] text-slate-100 placeholder-slate-500
+      focus:outline-none focus:ring-2 focus:ring-brand-500/60 focus:border-transparent;
+  }
+
+  textarea.field {
+    @apply h-auto py-2.5;
+  }
+
+  .btn {
+    @apply inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap
+      rounded-lg px-4 text-sm font-semibold transition active:scale-[0.98]
+      disabled:opacity-40 disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600;
+  }
+
+  .btn-ghost {
+    @apply btn border border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/10;
+  }
+
+  .btn-danger {
+    @apply btn bg-money-out/15 text-money-out hover:bg-money-out/25;
+  }
+
+  .btn-icon {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
+      text-slate-500 transition hover:bg-white/10 hover:text-slate-100;
+  }
+
+  .chip {
+    @apply inline-flex h-8 shrink-0 items-center rounded-full px-3 text-xs font-medium
+      transition bg-white/[0.06] text-slate-300 hover:bg-white/[0.12];
+  }
+
+  .chip-active {
+    @apply bg-brand-500 text-white hover:bg-brand-600;
+  }
+
+  .tab {
+    @apply inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3.5
+      text-sm font-semibold text-slate-400 transition hover:text-slate-100;
+  }
+
+  .tab-active {
+    @apply bg-ink-800 text-slate-100 shadow-card;
+  }
+}

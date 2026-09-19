@@ -14,13 +14,10 @@ import {
   PriceChart,
   FolioChart,
   SquareLoader,
-  StockForm,
   StockCard,
   TradeForm,
 } from "../components";
-import { CHART_CONFIGS, DATA_TYPES } from "../config/chartConfig";
-import "./MonthlyExpenseGraph.css";
-import "./PriceTracking.css";
+import { CHART_CONFIGS } from "../config/chartConfig";
 
 ChartJS.register(
   CategoryScale,
@@ -30,6 +27,37 @@ ChartJS.register(
   Tooltip,
   Legend,
 );
+
+const TABS = [
+  { id: "charts", label: "Price charts" },
+  { id: "portfolio", label: "My portfolio" },
+  { id: "manage", label: "Manage stocks" },
+];
+
+const money = (value) => `₹${API.numberWithCommas(Number(value).toFixed(2))}`;
+
+const signClass = (value) => (value >= 0 ? "text-money-in" : "text-money-out");
+
+function SummaryCard({ label, value, valueClass = "text-slate-100", footer }) {
+  return (
+    <div className="card p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className={`mt-1 truncate text-2xl font-bold ${valueClass}`}>{value}</p>
+      {footer}
+    </div>
+  );
+}
+
+function EmptyState({ icon, message }) {
+  return (
+    <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+      <span className="text-3xl opacity-50">{icon}</span>
+      <p className="text-sm text-slate-400">{message}</p>
+    </div>
+  );
+}
 
 function PriceTracking() {
   const [loading, setLoading] = useState(true);
@@ -131,8 +159,6 @@ function PriceTracking() {
       setNewStockName("");
       setNewStockSymbol("");
       setRefreshTrigger((prev) => prev + 1);
-
-      // Optionally close the form after successful addition
       setShowStockForm(false);
     } catch (error) {
       console.error("Error adding stock:", error);
@@ -152,7 +178,6 @@ function PriceTracking() {
 
   const toggleStockForm = () => {
     setShowStockForm((prev) => !prev);
-    // Reset form fields when toggling
     if (!showStockForm) {
       setNewStockName("");
       setNewStockSymbol("");
@@ -209,7 +234,6 @@ function PriceTracking() {
     GOOGL: { price: 231.46, change: 3.76, changePercent: 1.65 },
   };
 
-  // Combine user stocks with price data
   const stocksWithPrices = userStocks.map((stock) => {
     const liveInfo =
       mockStockPrices[stock.symbol] ||
@@ -252,254 +276,190 @@ function PriceTracking() {
       ? (portfolioSummary.totalReturn / portfolioSummary.totalInvested) * 100
       : 0;
 
+  if (loading) {
+    return <SquareLoader loading msg="Loading price data..." />;
+  }
+
   return (
-    <div className="tracking">
-      {loading ? (
-        <SquareLoader loading={loading} msg="Loading price data..." />
-      ) : error ? (
-        <div className="error-message">{error}</div>
+    <main className="page-wide">
+      <header className="mb-5">
+        <h1 className="page-title">Tracking</h1>
+        <p className="page-subtitle">Market prices and your stock portfolio</p>
+      </header>
+
+      {error ? (
+        <div className="card p-6 text-center text-money-out">{error}</div>
       ) : (
         <>
-          <div className="page-header">
-            <h1>Stock Dashboard</h1>
-            <p className="subtitle">Track and manage your stock portfolio</p>
-          </div>
-
-          <div className="tabs">
-            <button
-              className={`tab ${activeTab === "charts" ? "active" : ""}`}
-              onClick={() => setActiveTab("charts")}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                viewBox="0 0 16 16"
-                style={{ marginRight: "8px" }}
+          <div className="mb-5 inline-flex gap-1 overflow-x-auto rounded-xl bg-ink-900 p-1">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                className={`tab ${activeTab === tab.id ? "tab-active" : ""}`}
+                onClick={() => setActiveTab(tab.id)}
               >
-                <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z" />
-              </svg>
-              Price Charts
-            </button>
-            <button
-              className={`tab ${activeTab === "portfolio" ? "active" : ""}`}
-              onClick={() => setActiveTab("portfolio")}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                viewBox="0 0 16 16"
-                style={{ marginRight: "8px" }}
-              >
-                <path d="M14 3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h12zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z" />
-                <path d="M2 5.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-1z" />
-              </svg>
-              My Portfolio
-            </button>
-            <button
-              className={`tab ${activeTab === "manage" ? "active" : ""}`}
-              onClick={() => setActiveTab("manage")}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="currentColor"
-                viewBox="0 0 16 16"
-                style={{ marginRight: "8px" }}
-              >
-                <path d="M11 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h1V7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7h1V2zm1 12h2V2h-2v12zm-3 0V7H7v7h2zm-5 0v-3H2v3h2z" />
-              </svg>
-              Manage Stocks
-            </button>
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {activeTab === "manage" && (
-            <div className="stock-dashboard">
-              <div className="dashboard-header">
+            <section className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="dashboard-title">Your Stocks</h2>
-                  <p className="dashboard-subtitle">
-                    Track and manage your investment portfolio
+                  <h2 className="font-semibold">Your stocks</h2>
+                  <p className="mt-0.5 text-sm text-slate-400">
+                    Watchlist and quick trades
                   </p>
                 </div>
-                <button className="add-new-stock-btn" onClick={toggleStockForm}>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                  >
-                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-                  </svg>
-                  Add New Stock
+                <button className="btn-primary" onClick={toggleStockForm}>
+                  {showStockForm ? "Cancel" : "Add stock"}
                 </button>
               </div>
 
               {showStockForm && (
-                <div className="add-stock-section">
-                  <h2>Add Stock to Your Portfolio</h2>
-                  <form onSubmit={handleAddStock} className="add-stock-form">
-                    <div className="form-group">
-                      <label htmlFor="stockSymbol">Stock Symbol</label>
+                <form onSubmit={handleAddStock} className="card p-4 sm:p-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="stockSymbol" className="label">
+                        Stock symbol
+                      </label>
                       <input
                         type="text"
                         id="stockSymbol"
-                        placeholder="e.g., AAPL"
+                        className="field"
+                        placeholder="e.g. AAPL"
                         value={newStockSymbol}
                         onChange={(e) => setNewStockSymbol(e.target.value)}
                         disabled={isSubmitting}
                         required
                       />
-                      <span className="help-text">
-                        Enter the stock symbol as it appears on trading
-                        platforms
-                      </span>
                     </div>
-                    <div className="form-group">
-                      <label htmlFor="stockName">Display Name</label>
+                    <div>
+                      <label htmlFor="stockName" className="label">
+                        Display name
+                      </label>
                       <input
                         type="text"
                         id="stockName"
-                        placeholder="e.g., Apple Inc."
+                        className="field"
+                        placeholder="e.g. Apple Inc."
                         value={newStockName}
                         onChange={(e) => setNewStockName(e.target.value)}
                         disabled={isSubmitting}
                         required
                       />
                     </div>
+                  </div>
+                  <div className="mt-4 flex justify-end border-t border-white/5 pt-4">
                     <button
                       type="submit"
-                      className="add-stock-btn"
+                      className="btn-primary"
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? "Adding..." : "Add Stock"}
+                      {isSubmitting ? "Adding…" : "Add stock"}
                     </button>
-                  </form>
-                </div>
+                  </div>
+                </form>
               )}
 
-              <div className="stocks-container">
-                {stocksWithPrices.length === 0 ? (
-                  <div className="user-stocks-empty">
-                    <p>
-                      You haven't added any stocks yet. Click "Add New Stock" to
-                      get started.
-                    </p>
-                  </div>
-                ) : (
-                  stocksWithPrices.map((stock) => (
+              {stocksWithPrices.length === 0 ? (
+                <div className="card">
+                  <EmptyState
+                    icon="📈"
+                    message="No stocks yet. Add one to start tracking."
+                  />
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {stocksWithPrices.map((stock) => (
                     <StockCard
                       key={stock.symbol}
                       stock={stock}
                       onRemove={handleStockRemoved}
                       onTrade={(type) => openTradeForm(type, stock)}
                     />
-                  ))
-                )}
-              </div>
-            </div>
+                  ))}
+                </div>
+              )}
+            </section>
           )}
 
           {activeTab === "portfolio" && (
-            <div className="portfolio-section">
-              <div className="portfolio-summary">
-                <div className="summary-card main-summary">
-                  <div className="summary-label">Total Portfolio Value</div>
-                  <div className="summary-value">
-                    ₹{" "}
-                    {API.numberWithCommas(
-                      portfolioSummary.currentValue.toFixed(2),
-                    )}
-                  </div>
-                  <div
-                    className={`summary-change ${portfolioSummary.totalReturn >= 0 ? "positive-tag" : "negative-tag"}`}
-                  >
-                    {portfolioSummary.totalReturn >= 0 ? "+" : ""}₹{" "}
-                    {API.numberWithCommas(
-                      portfolioSummary.totalReturn.toFixed(2),
-                    )}{" "}
-                    ({portfolioSummary.returnPercent.toFixed(2)}%)
-                  </div>
-                </div>
-                <div className="summary-grid">
-                  <div className="summary-card">
-                    <div className="summary-label">Invested Value</div>
-                    <div className="summary-value secondary">
-                      ₹{" "}
-                      {API.numberWithCommas(
-                        portfolioSummary.totalInvested.toFixed(2),
-                      )}
-                    </div>
-                  </div>
-                  <div className="summary-card">
-                    <div className="summary-label">Realized Profits</div>
-                    <div
-                      className={`summary-value ${portfolioSummary.realizedPnL >= 0 ? "positive" : "negative"}`}
+            <section className="space-y-5">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <SummaryCard
+                  label="Portfolio value"
+                  value={money(portfolioSummary.currentValue)}
+                  footer={
+                    <p
+                      className={`mt-1 text-sm font-semibold ${signClass(portfolioSummary.totalReturn)}`}
                     >
-                      ₹{" "}
-                      {API.numberWithCommas(
-                        portfolioSummary.realizedPnL.toFixed(2),
-                      )}
-                    </div>
-                  </div>
-                </div>
+                      {portfolioSummary.totalReturn >= 0 ? "+" : "−"}
+                      {money(Math.abs(portfolioSummary.totalReturn))} (
+                      {portfolioSummary.returnPercent.toFixed(2)}%)
+                    </p>
+                  }
+                />
+                <SummaryCard
+                  label="Invested"
+                  value={money(portfolioSummary.totalInvested)}
+                />
+                <SummaryCard
+                  label="Unrealised P&L"
+                  value={money(portfolioSummary.unrealizedPnL)}
+                  valueClass={signClass(portfolioSummary.unrealizedPnL)}
+                />
+                <SummaryCard
+                  label="Realised P&L"
+                  value={money(portfolioSummary.realizedPnL)}
+                  valueClass={signClass(portfolioSummary.realizedPnL)}
+                />
               </div>
 
-              <div className="portfolio-content">
-                <div className="section-header">
-                  <h3>Active Holdings</h3>
+              <div className="card overflow-hidden">
+                <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3">
+                  <h2 className="font-semibold">Active holdings</h2>
                   <button
-                    className="add-new-stock-btn"
+                    className="btn-primary"
                     onClick={() => openTradeForm("BUY")}
-                    style={{ padding: "8px 16px", borderRadius: "10px" }}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                      style={{ marginRight: "6px" }}
-                    >
-                      <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-                    </svg>
-                    Quick Buy
+                    Quick buy
                   </button>
                 </div>
 
-                <div className="glass-table-container">
-                  {holdings.length === 0 ? (
-                    <div className="empty-state">
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          marginBottom: "10px",
-                          opacity: 0.5,
-                        }}
-                      >
-                        📊
-                      </div>
-                      No active holdings. Start by adding a BUY transaction.
-                    </div>
-                  ) : (
-                    <table className="holdings-table">
-                      <thead>
-                        <tr>
-                          <th>Stock</th>
-                          <th>Qty</th>
-                          <th>Avg. Price</th>
-                          <th>Live Price</th>
-                          <th>Value</th>
-                          <th>P&L</th>
-                          <th>Actions</th>
+                {holdings.length === 0 ? (
+                  <EmptyState
+                    icon="📊"
+                    message="No active holdings. Start with a buy transaction."
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[46rem] text-sm">
+                      <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
+                        <tr className="border-b border-white/5">
+                          <th className="px-4 py-2.5 font-semibold">Stock</th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            Qty
+                          </th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            Avg price
+                          </th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            Live price
+                          </th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            Value
+                          </th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            P&L
+                          </th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-white/5">
                         {holdings.map((h) => {
                           const stockInfo = stocksWithPrices.find(
                             (s) => s.symbol === h.symbol,
@@ -510,35 +470,46 @@ function PriceTracking() {
                           const pnlPercent = (pnl / h.totalCost) * 100;
 
                           return (
-                            <tr key={h.symbol}>
-                              <td>
-                                <div className="holding-name">{h.name}</div>
-                                <div className="holding-symbol">{h.symbol}</div>
+                            <tr key={h.symbol} className="hover:bg-white/[0.02]">
+                              <td className="px-4 py-3">
+                                <p className="font-semibold">{h.name}</p>
+                                <p className="text-xs text-slate-500">
+                                  {h.symbol}
+                                </p>
                               </td>
-                              <td>{h.quantity}</td>
-                              <td>₹ {h.avgPrice.toFixed(2)}</td>
-                              <td>₹ {livePrice.toFixed(2)}</td>
-                              <td>₹ {currentVal.toFixed(2)}</td>
+                              <td className="px-4 py-3 text-right tabular-nums">
+                                {h.quantity}
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums">
+                                {money(h.avgPrice)}
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums">
+                                {money(livePrice)}
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                                {money(currentVal)}
+                              </td>
                               <td
-                                className={pnl >= 0 ? "positive" : "negative"}
+                                className={`px-4 py-3 text-right font-semibold tabular-nums ${signClass(pnl)}`}
                               >
                                 <div>
-                                  {pnl >= 0 ? "+" : ""}
-                                  {pnl.toFixed(2)}
+                                  {pnl >= 0 ? "+" : "−"}
+                                  {money(Math.abs(pnl))}
                                 </div>
-                                <div className="percent">
-                                  ({pnlPercent.toFixed(2)}%)
+                                <div className="text-xs font-medium opacity-80">
+                                  {pnlPercent.toFixed(2)}%
                                 </div>
                               </td>
-                              <td>
-                                <div className="table-actions">
+                              <td className="px-4 py-3">
+                                <div className="flex justify-end gap-2">
                                   <button
+                                    className="btn-ghost h-8 px-3"
                                     onClick={() => openTradeForm("BUY", h)}
                                   >
                                     Buy
                                   </button>
                                   <button
-                                    className="btn-sell"
+                                    className="btn-danger h-8 px-3"
                                     onClick={() => openTradeForm("SELL", h)}
                                   >
                                     Sell
@@ -550,63 +521,82 @@ function PriceTracking() {
                         })}
                       </tbody>
                     </table>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
 
-                <div className="section-header" style={{ marginTop: "2rem" }}>
-                  <h3>Recent Transactions</h3>
+              <div className="card overflow-hidden">
+                <div className="border-b border-white/5 px-4 py-3">
+                  <h2 className="font-semibold">Recent transactions</h2>
                 </div>
-                <div className="glass-table-container">
-                  {transactions.length === 0 ? (
-                    <div className="empty-state">
-                      <div
-                        style={{
-                          fontSize: "2rem",
-                          marginBottom: "10px",
-                          opacity: 0.5,
-                        }}
-                      >
-                        📜
-                      </div>
-                      No transaction history found.
-                    </div>
-                  ) : (
-                    <table className="transactions-table">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Type</th>
-                          <th>Stock</th>
-                          <th>Qty</th>
-                          <th>Price</th>
-                          <th>Total</th>
+                {transactions.length === 0 ? (
+                  <EmptyState icon="📜" message="No transaction history yet." />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[38rem] text-sm">
+                      <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
+                        <tr className="border-b border-white/5">
+                          <th className="px-4 py-2.5 font-semibold">Date</th>
+                          <th className="px-4 py-2.5 font-semibold">Type</th>
+                          <th className="px-4 py-2.5 font-semibold">Stock</th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            Qty
+                          </th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            Price
+                          </th>
+                          <th className="px-4 py-2.5 text-right font-semibold">
+                            Total
+                          </th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-white/5">
                         {transactions.slice(0, 10).map((tx) => (
-                          <tr key={tx._id}>
-                            <td>{new Date(tx.date).toLocaleDateString()}</td>
-                            <td>
+                          <tr key={tx._id} className="hover:bg-white/[0.02]">
+                            <td className="px-4 py-3 text-slate-400">
+                              {new Date(tx.date).toLocaleDateString("en-IN")}
+                            </td>
+                            <td className="px-4 py-3">
                               <span
-                                className={
-                                  tx.type === "BUY" ? "type-buy" : "type-sell"
-                                }
+                                className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                                  tx.type === "BUY"
+                                    ? "bg-money-in/10 text-money-in"
+                                    : "bg-money-out/10 text-money-out"
+                                }`}
                               >
                                 {tx.type}
                               </span>
                             </td>
-                            <td>{tx.symbol}</td>
-                            <td>{tx.quantity}</td>
-                            <td>₹ {tx.price.toFixed(2)}</td>
-                            <td>₹ {(tx.quantity * tx.price).toFixed(2)}</td>
+                            <td className="px-4 py-3 font-semibold">
+                              {tx.symbol}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {tx.quantity}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {money(tx.price)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                              {money(tx.quantity * tx.price)}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
-            </div>
+            </section>
+          )}
+
+          {activeTab === "charts" && (
+            <section>
+              <h2 className="font-semibold">Market price charts</h2>
+              <p className="mt-0.5 text-sm text-slate-400">
+                Historical prices for gold, silver and other commodities
+              </p>
+              <div className="charts-grid">{renderCharts()}</div>
+            </section>
           )}
 
           {showTradeForm && (
@@ -617,20 +607,9 @@ function PriceTracking() {
               onCancel={() => setShowTradeForm(false)}
             />
           )}
-
-          {activeTab === "charts" && (
-            <div className="charts-section">
-              <h2>Market Price Charts</h2>
-              <p className="chart-description">
-                Track historical price data for gold, silver, and other
-                commodities
-              </p>
-              <div className="charts-grid">{renderCharts()}</div>
-            </div>
-          )}
         </>
       )}
-    </div>
+    </main>
   );
 }
 

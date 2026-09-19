@@ -1,217 +1,699 @@
-import React, { useState, useEffect } from "react";
-import "./style.css";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
-const EXPENSE_TYPES = [
-  { value: "EXPENSE", label: "Expense" },
-  { value: "INCOME", label: "Income" },
-  { value: "INVESTMENT", label: "Investment" },
-  { value: "DEBT", label: "Debt" },
-  { value: "INCOME_TAX", label: "Income Tax" },
+import { CATEGORIES, categoryLabel } from "../../constants/expense";
+import {
+  bucketKey,
+  bucketLabel,
+  buildImportEntries,
+  defaultMatchText,
+  findBankMapping,
+  isDebtType,
+  transactionDirection,
+} from "../../utils/bankImport";
+
+const GRANULARITIES = [
+  ["month", "one for the month"],
+  ["payee", "one per payee"],
+  ["transaction", "every transaction"],
 ];
 
-const CategorySelect = ({ value, onChange }) => (
-  <select value={value} onChange={onChange} className="category-select">
-    <optgroup label="Expenses">
-      <option value="bills">Bills</option>
-      <option value="order">Online Order</option>
-      <option value="rent">Rent</option>
-      <option value="home">Home</option>
-      <option value="food">Food</option>
-      <option value="medical">Medical</option>
-    </optgroup>
-    <optgroup label="Leisure">
-      <option value="entertainment">Entertainment</option>
-      <option value="shopping">Shopping</option>
-      <option value="travel">Travel</option>
-      <option value="sports">Sports</option>
-    </optgroup>
-    <optgroup label="Payments">
-      <option value="debt">Debt</option>
-      <option value="friends">Friends</option>
-    </optgroup>
-    <optgroup label="Income">
-      <option value="salary">Salary</option>
-      <option value="savings">Savings</option>
-    </optgroup>
-    <optgroup label="Investment">
-      <option value="stock">Stock</option>
-      <option value="post office">Post Office</option>
-    </optgroup>
-    <optgroup label="Tax">
-      <option value="tax">Tax</option>
-    </optgroup>
-    <option value="other">Others</option>
-  </select>
-);
+const formatDate = (value) =>
+  new Date(value).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
-const ImportForm = ({ transactions, onImport, onCancel, importStatus }) => {
-  const [mappedExpenses, setMappedExpenses] = useState([]);
-  const [bulkCategory, setBulkCategory] = useState("other");
+const money = (value) => `₹${Math.abs(value || 0).toLocaleString("en-IN")}`;
+
+const defaultCategory = (type) =>
+  type === "INCOME" ? "salary" : type === "INCOME_TAX" ? "tax" : "other";
+
+const sumOf = (items) => items.reduce((total, item) => total + item.amount, 0);
+
+function makeEntry(transaction, mappings) {
+  const direction = transactionDirection(transaction);
+  const mapping = findBankMapping(transaction, mappings);
+  const matchText =
+    mapping?.matchText || defaultMatchText(transaction.narration);
+  const type = mapping?.type || (direction === "debit" ? "EXPENSE" : "INCOME");
+
+  return {
+    tempId: transaction.id,
+    narration: transaction.narration,
+    direction,
+    matchText,
+    assigned: Boolean(mapping),
+    known: Boolean(mapping),
+    remember: Boolean(mapping),
+    selected: true,
+    type,
+    name: mapping?.name || matchText,
+    category: mapping?.category || defaultCategory(type),
+    granularity: mapping?.granularity || "month",
+    amount:
+      direction === "debit"
+        ? -Math.abs(transaction.debitAmount)
+        : Math.abs(transaction.creditAmount),
+    eventDate: transaction.transactionDate,
+    bankReference: transaction.referenceNumber || "",
+  };
+}
+
+const groupPayees = (entries) => {
+  const byKey = new Map();
+  entries.forEach((entry) => {
+    const key = `${entry.direction}:${entry.matchText}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, { key, matchText: entry.matchText, entries: [] });
+    }
+    byKey.get(key).entries.push(entry);
+  });
+  return [...byKey.values()];
+};
+
+function DestinationPicker({ value, onChange, people }) {
+  const { type, category, name } = value;
+
+  return (
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+      <select
+        value={type === "SKIP" || isDebtType(type) ? type : "CATEGORY"}
+        onChange={(event) => {
+          const next = event.target.value;
+          if (next === "CATEGORY") {
+            onChange({ ...value, type: "EXPENSE", category: category || "food" });
+          } else {
+            onChange({ ...value, type: next });
+          }
+        }}
+        className="field min-w-0 flex-1 sm:w-auto sm:flex-none"
+        aria-label="Destination"
+      >
+        <option value="CATEGORY">Category</option>
+        <option value="DEBT_GIVEN">Lent to a person</option>
+        <option value="DEBT_BOUGHT">Borrowed from a person</option>
+        <option value="INCOME">Income</option>
+        <option value="INCOME_TAX">Tax paid</option>
+        <option value="SKIP">Ignore</option>
+      </select>
+
+      {!isDebtType(type) && type !== "SKIP" && (
+        <select
+          value={category}
+          onChange={(event) =>
+            onChange({ ...value, category: event.target.value })
+          }
+          className="field min-w-0 flex-1 capitalize sm:w-auto sm:flex-none"
+          aria-label="Category"
+        >
+          {CATEGORIES.map((item) => (
+            <option key={item} value={item}>
+              {categoryLabel(item)}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {isDebtType(type) && (
+        <input
+          type="text"
+          value={name}
+          list="import-people"
+          onChange={(event) => onChange({ ...value, name: event.target.value })}
+          className="field min-w-0 flex-1 sm:w-auto sm:flex-none"
+          placeholder="Person's name"
+          aria-label="Person's name"
+        />
+      )}
+
+      <datalist id="import-people">
+        {people.map((person) => (
+          <option key={person} value={person} />
+        ))}
+      </datalist>
+    </div>
+  );
+}
+
+function BucketRow({
+  bucket,
+  rowCount,
+  onSetting,
+  onUnassign,
+  onToggleRemember,
+  onToggle,
+}) {
+  const [open, setOpen] = useState(false);
+  const { head, payees, entries, granularity, description } = bucket;
+  const total = sumOf(entries.filter((entry) => entry.selected));
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="flex items-center gap-3 p-3">
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <span className="text-xs text-slate-500">{open ? "▾" : "▸"}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold capitalize">
+              {bucketLabel(head)}
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-slate-500">
+              {entries.length} txns · {payees.length}{" "}
+              {payees.length === 1 ? "payee" : "payees"} · {rowCount}{" "}
+              {rowCount === 1 ? "entry" : "entries"}
+            </span>
+          </span>
+        </button>
+
+        <span
+          className={`shrink-0 font-bold ${
+            total < 0 ? "text-money-out" : "text-money-in"
+          }`}
+        >
+          {money(total)}
+        </span>
+      </div>
+
+      {open && (
+        <div className="space-y-3 border-t border-white/5 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shrink-0 text-xs text-slate-400">Create</span>
+            <select
+              value={granularity}
+              onChange={(event) => onSetting("granularity", event.target.value)}
+              className="field min-w-0 flex-1 sm:w-auto sm:flex-none"
+              aria-label="How many entries to create"
+            >
+              {GRANULARITIES.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+
+            {granularity === "month" && (
+              <input
+                type="text"
+                value={description}
+                onChange={(event) => onSetting("description", event.target.value)}
+                className="field w-full min-w-0 sm:w-auto sm:flex-1"
+                placeholder="Description"
+                aria-label="Description"
+              />
+            )}
+          </div>
+
+          <div className="space-y-1">
+            {payees.map((payee) => (
+              <div
+                key={payee.key}
+                className="flex items-center gap-2 text-xs text-slate-400"
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  {payee.matchText} · {payee.entries.length}
+                </span>
+                <span className="shrink-0">{money(sumOf(payee.entries))}</span>
+                <button
+                  type="button"
+                  onClick={() => onToggleRemember(payee)}
+                  className={`shrink-0 font-semibold ${
+                    payee.entries[0].remember
+                      ? "text-slate-500"
+                      : "text-money-debt"
+                  }`}
+                  title={
+                    payee.entries[0].remember
+                      ? "Saved as a rule for next time"
+                      : "This import only"
+                  }
+                >
+                  {payee.entries[0].remember ? "Saved" : "One time"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUnassign(payee)}
+                  className="shrink-0 font-semibold text-brand-400"
+                >
+                  Move
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <details>
+            <summary className="cursor-pointer text-xs font-semibold text-brand-400">
+              Transactions
+            </summary>
+            <div className="mt-2 space-y-1">
+              {entries.map((entry) => (
+                <label
+                  key={entry.tempId}
+                  className="flex items-start gap-2 text-xs text-slate-400"
+                >
+                  <input
+                    type="checkbox"
+                    checked={entry.selected}
+                    onChange={() => onToggle(entry.tempId)}
+                    className="mt-0.5 accent-brand-500"
+                  />
+                  <span className="min-w-0 flex-1 truncate">
+                    {formatDate(entry.eventDate)} · {entry.narration}
+                  </span>
+                  <span className="shrink-0">{money(entry.amount)}</span>
+                </label>
+              ))}
+            </div>
+          </details>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ImportForm({
+  transactions,
+  mappings,
+  mappingsLoading,
+  onImport,
+  onCancel,
+  importStatus,
+}) {
+  const [entries, setEntries] = useState([]);
+  const [settings, setSettings] = useState({});
+  const [picked, setPicked] = useState([]);
+  const [search, setSearch] = useState("");
+  const [remember, setRemember] = useState(true);
+  const [draft, setDraft] = useState({
+    type: "EXPENSE",
+    category: "food",
+    name: "",
+  });
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
-    // Initialize mapped expenses from transactions
-    const initial = transactions.map((txn) => {
-      const isCredit = txn.creditAmount > 0;
-      return {
-        tempId: txn.id,
-        name: txn.narration,
-        amount: isCredit ? txn.creditAmount : txn.debitAmount,
-        type: isCredit ? "INCOME" : "EXPENSE",
-        category: isCredit ? "salary" : "food",
-        eventDate: txn.transactionDate,
-        note: `Imported from bank statement: ${txn.referenceNumber || ""}`,
-      };
-    });
-    setMappedExpenses(initial);
-  }, [transactions]);
+    if (mappingsLoading) return;
 
-  const handleUpdateItem = (tempId, field, value) => {
-    setMappedExpenses((prev) =>
-      prev.map((item) =>
-        item.tempId === tempId ? { ...item, [field]: value } : item,
+    const next = transactions.map((transaction) =>
+      makeEntry(transaction, mappings),
+    );
+    setEntries(next);
+    setSettings(
+      next.reduce((acc, entry) => {
+        if (!entry.assigned) return acc;
+        const key = bucketKey(entry);
+        if (!acc[key]) {
+          acc[key] = {
+            granularity: entry.granularity,
+            description: bucketLabel(entry),
+          };
+        }
+        return acc;
+      }, {}),
+    );
+  }, [mappings, mappingsLoading, transactions]);
+
+  const people = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          mappings.filter((item) => isDebtType(item.type)).map((item) => item.name),
+        ),
+      ).filter(Boolean),
+    [mappings],
+  );
+
+  const popularCategories = useMemo(() => {
+    const counts = {};
+    mappings
+      .filter((item) => item.type === "EXPENSE" && item.category)
+      .forEach((item) => {
+        counts[item.category] = (counts[item.category] || 0) + 1;
+      });
+    const ranked = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    return [...ranked, "food", "bills", "travel", "shopping"]
+      .filter((item, index, list) => list.indexOf(item) === index)
+      .slice(0, 4);
+  }, [mappings]);
+
+  const assigned = entries.filter((entry) => entry.assigned);
+  const unassignedPayees = groupPayees(
+    entries.filter((entry) => !entry.assigned),
+  );
+
+  const buckets = useMemo(() => {
+    const byKey = new Map();
+    assigned.forEach((entry) => {
+      const key = bucketKey(entry);
+      if (!byKey.has(key)) {
+        byKey.set(key, { key, head: entry, entries: [] });
+      }
+      byKey.get(key).entries.push(entry);
+    });
+
+    return [...byKey.values()].map((bucket) => ({
+      ...bucket,
+      payees: groupPayees(bucket.entries),
+      granularity: settings[bucket.key]?.granularity || "month",
+      description: settings[bucket.key]?.description ?? bucketLabel(bucket.head),
+    }));
+  }, [assigned, settings]);
+
+  const importRows = useMemo(
+    () => buildImportEntries(entries, settings),
+    [entries, settings],
+  );
+
+  const newRuleCount = new Set(
+    assigned
+      .filter((entry) => entry.remember)
+      .map((entry) => `${entry.direction}:${entry.matchText}`),
+  ).size;
+
+  const outflow = sumOf(entries.filter((entry) => entry.amount < 0));
+  const assignedOutflow = sumOf(assigned.filter((entry) => entry.amount < 0));
+  const coverage = outflow ? Math.round((assignedOutflow / outflow) * 100) : 100;
+
+  const visiblePayees = unassignedPayees
+    .filter((payee) => payee.matchText.includes(search.trim().toLowerCase()))
+    .sort((a, b) => Math.abs(sumOf(b.entries)) - Math.abs(sumOf(a.entries)));
+
+  const assignPayees = (payeeKeys, destination, remember = true) => {
+    const keys = new Set(payeeKeys);
+    setEntries((current) =>
+      current.map((entry) =>
+        keys.has(`${entry.direction}:${entry.matchText}`)
+          ? {
+              ...entry,
+              assigned: true,
+              remember,
+              type: destination.type,
+              category: isDebtType(destination.type)
+                ? entry.category
+                : destination.category,
+              name: isDebtType(destination.type)
+                ? destination.name
+                : entry.matchText,
+            }
+          : entry,
+      ),
+    );
+    setPicked((current) => current.filter((key) => !keys.has(key)));
+  };
+
+  const unassignPayee = (payee) => {
+    const keys = new Set(payee.entries.map((entry) => entry.tempId));
+    setEntries((current) =>
+      current.map((entry) =>
+        keys.has(entry.tempId)
+          ? { ...entry, assigned: false, remember: false }
+          : entry,
       ),
     );
   };
 
-  const handleBulkApplyCategory = () => {
-    setMappedExpenses((prev) =>
-      prev.map((item) => ({ ...item, category: bulkCategory })),
+  const toggleRemember = (payee) => {
+    const keys = new Set(payee.entries.map((entry) => entry.tempId));
+    const next = !payee.entries[0].remember;
+    setEntries((current) =>
+      current.map((entry) =>
+        keys.has(entry.tempId) ? { ...entry, remember: next } : entry,
+      ),
     );
   };
 
-  const handleSubmit = () => {
-    onImport(mappedExpenses);
+  const toggleTransaction = (tempId) => {
+    setEntries((current) =>
+      current.map((entry) =>
+        entry.tempId === tempId
+          ? { ...entry, selected: !entry.selected }
+          : entry,
+      ),
+    );
   };
 
-  if (importStatus.inProgress) {
-    const progress = (importStatus.success / importStatus.total) * 100;
+  const setSetting = (key, field, value) =>
+    setSettings((current) => ({
+      ...current,
+      [key]: { ...current[key], [field]: value },
+    }));
+
+  const submit = () => {
+    const namelessDebt = assigned.find(
+      (entry) => isDebtType(entry.type) && !entry.name.trim(),
+    );
+    if (namelessDebt) {
+      setValidationError("Add a name to every person you are tracking.");
+      return;
+    }
+
+    const rules = new Map();
+    assigned.forEach((entry) => {
+      if (!entry.remember) return;
+      const key = `${entry.direction}:${entry.matchText}`;
+      rules.set(key, {
+        matchText: entry.matchText,
+        direction: entry.direction,
+        type: entry.type,
+        name: entry.name.trim().toLowerCase(),
+        category: entry.category,
+        granularity: settings[bucketKey(entry)]?.granularity || "month",
+      });
+    });
+
+    setValidationError("");
+    onImport(importRows, Array.from(rules.values()));
+  };
+
+  if (mappingsLoading) {
     return (
-      <div className="import-progress-container">
-        <h2>Importing Transactions...</h2>
-        <div className="progress-bar-wrapper">
-          <div className="progress-bar" style={{ width: `${progress}%` }}></div>
-        </div>
-        <p>
-          Importing {importStatus.success} of {importStatus.total}
-        </p>
+      <div className="card p-8 text-center text-slate-400">
+        Loading your saved rules…
       </div>
     );
   }
 
-  if (
-    !importStatus.inProgress &&
-    importStatus.total > 0 &&
-    importStatus.errors.length > 0
-  ) {
+  if (importStatus.inProgress) {
+    const completed = importStatus.success + importStatus.duplicates;
+    const progress = importStatus.total
+      ? (completed / importStatus.total) * 100
+      : 100;
     return (
-      <div className="import-results-container">
-        <h2>Import Completed with Errors</h2>
-        <p>Successfully imported: {importStatus.success}</p>
-        <div className="error-list">
-          {importStatus.errors.map((err, i) => (
-            <div key={i} className="error-item">
-              <strong>{err.name}:</strong> {err.error}
-            </div>
-          ))}
+      <div className="card p-8 text-center">
+        <div className="mx-auto h-2 max-w-md overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-brand-500 transition-all"
+            style={{ width: `${progress}%` }}
+          />
         </div>
-        <button className="btn-primary" onClick={onCancel}>
-          Close
-        </button>
+        <p className="mt-4 font-semibold">Importing…</p>
+        <p className="mt-1 text-sm text-slate-400">
+          {completed} of {importStatus.total}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="import-form">
-      <div className="import-header">
-        <h2>Review & Import</h2>
-        <p>
-          Assign category and type for selected transactions before importing.
-        </p>
-      </div>
-
-      <div className="bulk-actions">
-        <div className="bulk-item">
-          <span>Set all categories to:</span>
-          <CategorySelect
-            value={bulkCategory}
-            onChange={(e) => setBulkCategory(e.target.value)}
-          />
-          <button className="btn-secondary" onClick={handleBulkApplyCategory}>
-            Apply All
-          </button>
+    <div>
+      <header className="mb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="page-title">Review statement</h1>
+            <p className="page-subtitle">
+              {entries.length} transactions · {coverage}% of spending sorted
+            </p>
+          </div>
+          <Link to="/import-rules" className="btn-ghost no-underline">
+            Manage rules
+          </Link>
         </div>
-      </div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-brand-500 transition-all"
+            style={{ width: `${coverage}%` }}
+          />
+        </div>
+      </header>
 
-      <div className="import-list">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Type</th>
-              <th>Category</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mappedExpenses.map((item) => (
-              <tr key={item.tempId}>
-                <td>{new Date(item.eventDate).toLocaleDateString()}</td>
-                <td>
+      {visiblePayees.length > 0 && (
+        <section className="mb-6">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold">
+              Needs a category
+              <span className="ml-2 text-sm font-normal text-slate-400">
+                {unassignedPayees.length} payees
+              </span>
+            </h2>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="field w-full sm:w-56"
+              placeholder="Search payee"
+              aria-label="Search payee"
+            />
+          </div>
+
+          <div className="card divide-y divide-white/5">
+            {visiblePayees.map((payee) => {
+              const checked = picked.includes(payee.key);
+              return (
+                <div key={payee.key} className="flex items-center gap-3 p-3">
                   <input
-                    type="text"
-                    value={item.name}
-                    onChange={(e) =>
-                      handleUpdateItem(item.tempId, "name", e.target.value)
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() =>
+                      setPicked((current) =>
+                        checked
+                          ? current.filter((key) => key !== payee.key)
+                          : [...current, payee.key],
+                      )
                     }
+                    className="h-4 w-4 shrink-0 accent-brand-500"
+                    aria-label={`Select ${payee.matchText}`}
                   />
-                </td>
-                <td
-                  className={
-                    item.type === "INCOME" ? "text-income" : "text-expense"
-                  }
-                >
-                  ₹{item.amount.toLocaleString()}
-                </td>
-                <td>
-                  <select
-                    value={item.type}
-                    onChange={(e) =>
-                      handleUpdateItem(item.tempId, "type", e.target.value)
-                    }
-                  >
-                    {EXPENSE_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {payee.matchText}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {payee.entries.length} txns
+                    </p>
+                  </div>
+                  <div className="hidden shrink-0 gap-1 sm:flex">
+                    {popularCategories.map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() =>
+                          assignPayees([payee.key], {
+                            type: "EXPENSE",
+                            category,
+                          })
+                        }
+                        className="chip capitalize hover:border-brand-500/40"
+                      >
+                        {category}
+                      </button>
                     ))}
-                  </select>
-                </td>
-                <td>
-                  <CategorySelect
-                    value={item.category}
-                    onChange={(e) =>
-                      handleUpdateItem(item.tempId, "category", e.target.value)
-                    }
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  </div>
+                  <span
+                    className={`w-24 shrink-0 text-right text-sm font-bold ${
+                      sumOf(payee.entries) < 0
+                        ? "text-money-out"
+                        : "text-money-in"
+                    }`}
+                  >
+                    {money(sumOf(payee.entries))}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      <div className="import-footer">
-        <button className="btn-cancel" onClick={onCancel}>
-          Cancel
-        </button>
-        <button className="btn-primary" onClick={handleSubmit}>
-          Import {mappedExpenses.length} Items
-        </button>
+      {buckets.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-bold">
+            Ready
+            <span className="ml-2 text-sm font-normal text-slate-400">
+              {buckets.length} categories
+            </span>
+          </h2>
+          <div className="space-y-2">
+            {buckets.map((bucket) => (
+              <BucketRow
+                key={bucket.key}
+                bucket={bucket}
+                rowCount={
+                  importRows.filter(
+                    (row) =>
+                      bucketKey({
+                        type: row.type,
+                        category: row.category,
+                        name: row.name,
+                      }) === bucket.key,
+                  ).length
+                }
+                onSetting={(field, value) =>
+                  setSetting(bucket.key, field, value)
+                }
+                onUnassign={unassignPayee}
+                onToggleRemember={toggleRemember}
+                onToggle={toggleTransaction}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {validationError && (
+        <p className="mt-4 rounded-xl bg-money-out/10 p-3 text-sm text-money-out">
+          {validationError}
+        </p>
+      )}
+
+      {importStatus.errors.length > 0 && (
+        <p className="mt-4 rounded-xl bg-money-out/10 p-3 text-sm text-money-out">
+          {importStatus.errors.length} entries failed. Correct them and retry.
+        </p>
+      )}
+
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 mt-5 rounded-2xl border border-white/10 bg-ink-900/95 p-3 backdrop-blur md:bottom-4">
+        {picked.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shrink-0 text-sm font-semibold">
+              {picked.length} selected
+            </span>
+            <DestinationPicker
+              value={draft}
+              onChange={setDraft}
+              people={people}
+            />
+            <label className="flex shrink-0 items-center gap-2 text-xs text-slate-400">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={() => setRemember((value) => !value)}
+                className="accent-brand-500"
+              />
+              Remember next time
+            </label>
+            <button
+              type="button"
+              onClick={() => assignPayees(picked, draft, remember)}
+              className="btn-primary w-full sm:ml-auto sm:w-auto"
+            >
+              Assign
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={onCancel} className="btn-ghost">
+              Cancel
+            </button>
+            <span className="min-w-0 flex-1 truncate text-right text-xs text-slate-500">
+              {importRows.length}{" "}
+              {importRows.length === 1 ? "entry" : "entries"} · {newRuleCount}{" "}
+              {newRuleCount === 1 ? "rule" : "rules"} saved
+            </span>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!importRows.length}
+              className="btn-primary"
+            >
+              Import
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default ImportForm;
+}

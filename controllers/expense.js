@@ -1,5 +1,10 @@
 const Expense = require("../models/expense");
 const dayjs = require("dayjs");
+const {
+  resolveWorkspace,
+  workspaceCondition,
+} = require("./workspace");
+const { importFingerprint } = require("../utils/bankImport");
 
 const EXPENSE_TYPE = {
   INCOME: "INCOME",
@@ -14,6 +19,52 @@ const EXPENSE_TYPE = {
 
 exports.EXPENSE_TYPE = EXPENSE_TYPE;
 
+const WORKSPACE_SCOPED_TYPES = [
+  EXPENSE_TYPE.EXPENSE,
+  EXPENSE_TYPE.INCOME,
+];
+
+const escapeRegExp = (value) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+async function withWorkspace(user, data) {
+  if (!WORKSPACE_SCOPED_TYPES.includes(data.type)) {
+    const { workspaceId, ...globalData } = data;
+    return globalData;
+  }
+
+  const { workspace } = await resolveWorkspace(user, data.workspaceId);
+  return { ...data, workspaceId: String(workspace._id) };
+}
+
+// Only these types have one possible direction, so their sign is decided here,
+// where every write converges (the bank-statement import sends debits as
+// positive and would otherwise store spending as income). Debt and investment
+// signs are left alone: there the sign carries meaning the server can't infer,
+// such as a repayment or a booked profit.
+const FIXED_SIGN_BY_TYPE = {
+  [EXPENSE_TYPE.EXPENSE]: -1,
+  [EXPENSE_TYPE.INCOME_TAX]: -1,
+  [EXPENSE_TYPE.INCOME]: 1,
+};
+
+function withSignedAmount(data) {
+  const sign = FIXED_SIGN_BY_TYPE[data.type];
+  if (!sign || data.amount === undefined || data.amount === null) {
+    return data;
+  }
+  const magnitude = Math.abs(Number(data.amount));
+  if (Number.isNaN(magnitude)) {
+    return data;
+  }
+  return { ...data, amount: sign * magnitude };
+}
+
+exports.withSignedAmount = withSignedAmount;
+
+const FAMILY_CATEGORY = "home";
+exports.FAMILY_CATEGORY = FAMILY_CATEGORY;
+
 exports.searchExpense = async (req, res) => {
   try {
     const q = req.query.q || "";
@@ -21,10 +72,28 @@ exports.searchExpense = async (req, res) => {
       return res.status(200).json({ success: true, data: [] });
     }
 
-    const regex = new RegExp(q, "i");
+    const regex = new RegExp(escapeRegExp(q), "i");
+    const { workspace } = await resolveWorkspace(
+      req.user,
+      req.query.workspaceId,
+    );
+    const scopedWorkspace = workspaceCondition(workspace);
     const results = await Expense.find({
-      userId: req.user._id,
-      $or: [{ name: regex }, { note: regex }, { category: regex }],
+      userId: String(req.user._id),
+      $and: [
+        { $or: [{ name: regex }, { note: regex }, { category: regex }] },
+        {
+          $or: [
+            { type: { $nin: WORKSPACE_SCOPED_TYPES } },
+            {
+              $and: [
+                { type: { $in: WORKSPACE_SCOPED_TYPES } },
+                scopedWorkspace,
+              ],
+            },
+          ],
+        },
+      ],
     })
       .sort({ eventDate: -1 })
       .limit(100)
@@ -35,6 +104,9 @@ exports.searchExpense = async (req, res) => {
     return res.status(200).json({ success: true, data: results, query: q });
   } catch (err) {
     console.log(err);
+    if (err.status) {
+      return res.status(err.status).json({ success: false, error: err.message });
+    }
     return res.status(500).json({ success: false, error: "Server Error" });
   }
 };
@@ -50,14 +122,36 @@ async function getData(type, basicMatchQuery) {
     isRecurring: 1,
     recurringFrequency: 1,
     vault: 1,
+    workspaceId: 1,
   };
 
   const aggregations = {
     DASHBOARD: [
       {
-        $match: { ...basicMatchQuery, type: { $ne: EXPENSE_TYPE.INCOME_TAX } },
+        $match: {
+          ...basicMatchQuery,
+          type: { $in: WORKSPACE_SCOPED_TYPES },
+        },
       },
-      { $group: { _id: "$type", amount: { $sum: "$amount" } } },
+      {
+        $group: {
+          // Money sent home is reported apart from own spending: it is the
+          // largest outflow and buries every other category when mixed in.
+          _id: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$type", EXPENSE_TYPE.EXPENSE] },
+                  { $eq: ["$category", FAMILY_CATEGORY] },
+                ],
+              },
+              "FAMILY",
+              "$type",
+            ],
+          },
+          amount: { $sum: "$amount" },
+        },
+      },
     ],
     INCOME: [
       {
@@ -83,7 +177,15 @@ async function getData(type, basicMatchQuery) {
     ],
     EXPENSE: [
       {
-        $match: { ...basicMatchQuery, type: EXPENSE_TYPE.EXPENSE },
+        // Family money is only listed when asked for by category, so this page
+        // totals the same own spending the dashboard shows.
+        $match: {
+          ...basicMatchQuery,
+          type: EXPENSE_TYPE.EXPENSE,
+          ...(basicMatchQuery.category
+            ? {}
+            : { category: { $ne: FAMILY_CATEGORY } }),
+        },
       },
       {
         $group: { _id: "$category", amount: { $sum: "$amount" } },
@@ -108,15 +210,8 @@ async function getData(type, basicMatchQuery) {
   };
 
   if (type === "DASHBOARD") {
-    const vaultBalMatch = { ...basicMatchQuery };
-    delete vaultBalMatch.vault; // Always show total across all vaults in the summary
-
     return {
       group: await Expense.aggregate(aggregations[type]),
-      vaultBalances: await Expense.aggregate([
-        { $match: vaultBalMatch },
-        { $group: { _id: "$vault", amount: { $sum: "$amount" } } },
-      ]),
     };
   }
 
@@ -141,8 +236,13 @@ exports.getExpense = async (req, res, next) => {
     const endDate = req.query.end || dayjs().endOf("D").toISOString();
     const name = req.query.name;
 
+    // userId is a string in the schema, and mongoose does not cast $match in an
+    // aggregation the way it casts find(), so an ObjectId here matches nothing
+    // and every total comes back empty while the tables still fill.
+    const userId = String(req.user._id);
+
     let basicMatchQuery = {
-      userId: req.user._id,
+      userId,
       eventDate: { $gte: new Date(startDate), $lte: new Date(endDate) },
     };
     if (req.query.all) {
@@ -159,9 +259,21 @@ exports.getExpense = async (req, res, next) => {
     }
 
     if (req.query.type === EXPENSE_TYPE.INCOME_TAX) {
-      basicMatchQuery = { userId: req.user._id };
+      basicMatchQuery = { userId };
     }
-    const expenses = await getData(req.query.type, basicMatchQuery, req.query);
+
+    if (
+      req.query.type === EXPENSE_TYPE.DASHBOARD ||
+      WORKSPACE_SCOPED_TYPES.includes(req.query.type)
+    ) {
+      const { workspace } = await resolveWorkspace(
+        req.user,
+        req.query.workspaceId,
+      );
+      Object.assign(basicMatchQuery, workspaceCondition(workspace));
+    }
+
+    const expenses = await getData(req.query.type, basicMatchQuery);
 
     return res.status(200).json({
       success: true,
@@ -169,10 +281,43 @@ exports.getExpense = async (req, res, next) => {
     });
   } catch (err) {
     console.log(err, "etrr");
+    if (err.status) {
+      return res.status(err.status).json({ success: false, error: err.message });
+    }
     return res.status(500).json({
       success: false,
       error: "Server Error",
     });
+  }
+};
+
+// One row per person: the net of what they handed you (DEBT_BOUGHT, positive)
+// and what you handed them (DEBT_GIVEN, negative). A positive net means you owe
+// them, negative means they owe you.
+exports.getPeople = async (req, res) => {
+  try {
+    const people = await Expense.aggregate([
+      {
+        $match: {
+          userId: String(req.user._id),
+          type: { $in: [EXPENSE_TYPE.DEBT_BOUGHT, EXPENSE_TYPE.DEBT_GIVEN] },
+        },
+      },
+      {
+        $group: {
+          _id: "$name",
+          net: { $sum: "$amount" },
+          entries: { $sum: 1 },
+          lastDate: { $max: "$eventDate" },
+        },
+      },
+      { $sort: { lastDate: -1 } },
+    ]);
+
+    return res.status(200).json({ success: true, data: people });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ success: false, error: "Server Error" });
   }
 };
 
@@ -181,15 +326,48 @@ exports.addExpense = async (req, res, next) => {
     let response;
     if (req.body._id) {
       const { _id, ...data } = req.body;
+      const existing = await Expense.findOne({
+        _id,
+        userId: String(req.user._id),
+      });
+      if (!existing) {
+        return res.status(404).json({
+          success: false,
+          error: "Entry not found",
+        });
+      }
+      const updateData = await withWorkspace(req.user, {
+        ...data,
+        type: data.type || existing.type,
+        // Editing changes the entry, not which book it belongs to.
+        workspaceId: existing.workspaceId || undefined,
+      });
       response = await Expense.updateOne(
-        { _id: req.body._id, userId: req.user._id },
-        data,
+        { _id, userId: String(req.user._id) },
+        withSignedAmount(updateData),
       );
     } else {
-      let expenseData = {
-        userId: req.user._id,
+      let expenseData = await withWorkspace(req.user, {
         ...req.body,
-      };
+        userId: String(req.user._id),
+      });
+      expenseData = withSignedAmount(expenseData);
+      expenseData.importFingerprint = importFingerprint(
+        String(req.user._id),
+        expenseData,
+      );
+      if (
+        expenseData.importFingerprint &&
+        (await Expense.exists({
+          userId: String(req.user._id),
+          importFingerprint: expenseData.importFingerprint,
+        }))
+      ) {
+        return res.status(409).json({
+          success: false,
+          error: "This bank transaction was already imported",
+        });
+      }
 
       // Auto-allocation logic for salary
       const budgetSettings = req.user.budgetSettings;
@@ -207,6 +385,9 @@ exports.addExpense = async (req, res, next) => {
         // Create the surplus entry first
         await Expense.create({
           ...expenseData,
+          // One bank transaction can split into two salary rows. Keep its
+          // duplicate key on the primary row only.
+          importFingerprint: undefined,
           amount: surplus,
           vault: autoVault,
           note: expenseData.note
@@ -228,12 +409,20 @@ exports.addExpense = async (req, res, next) => {
     });
   } catch (err) {
     console.log(err);
+    if (err.status) {
+      return res.status(err.status).json({ success: false, error: err.message });
+    }
     if (err.name === "ValidationError") {
       const messages = Object.values(err.errors).map((val) => val.message);
 
       return res.status(400).json({
         success: false,
         error: messages,
+      });
+    } else if (err.code === 11000 && err.keyPattern?.importFingerprint) {
+      return res.status(409).json({
+        success: false,
+        error: "This bank transaction was already imported",
       });
     } else {
       console.log(err);
@@ -247,9 +436,25 @@ exports.addExpense = async (req, res, next) => {
 
 exports.editExpense = async (req, res, next) => {
   try {
+    const existing = await Expense.findOne({
+      _id: req.params.id,
+      userId: String(req.user._id),
+    });
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: "Entry not found",
+      });
+    }
+    const updateData = await withWorkspace(req.user, {
+      ...req.body,
+      type: req.body.type || existing.type,
+      workspaceId: existing.workspaceId || undefined,
+    });
     const month = await Expense.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user._id },
-      { ...req.body },
+      { _id: req.params.id, userId: String(req.user._id) },
+      withSignedAmount(updateData),
+      { new: true, runValidators: true },
     );
 
     return res.status(201).json({
@@ -257,6 +462,9 @@ exports.editExpense = async (req, res, next) => {
       data: month,
     });
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ success: false, error: err.message });
+    }
     if (err.name === "ValidationError") {
       const messages = Object.values(err.errors).map((val) => val.message);
 
@@ -326,6 +534,7 @@ exports.processRecurring = async (req, res, next) => {
       while (nextDate <= now) {
         await Expense.create({
           userId: entry.userId,
+          workspaceId: entry.workspaceId,
           type: entry.type,
           name: entry.name,
           amount: entry.amount,
@@ -333,6 +542,7 @@ exports.processRecurring = async (req, res, next) => {
           note: entry.note ? `${entry.note} (recurring)` : "(recurring)",
           eventDate: new Date(nextDate),
           isRecurring: false, // generated entries are not recurring themselves
+          vault: entry.vault,
         });
         created++;
 

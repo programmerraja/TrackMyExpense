@@ -17,6 +17,7 @@ connectDB();
 // process.env.NODE_ENV = "development";
 const expense = require("./routes/expense");
 const priceTracking = require("./routes/priceTracking.js");
+const workspace = require("./routes/workspace");
 
 const user = require("./routes/user");
 
@@ -57,6 +58,12 @@ app.use(
     auth.isAuthenticated()(req, res, next);
   },
   expense,
+);
+
+app.use(
+  "/api/v1/workspaces",
+  auth.isAuthenticated(),
+  workspace,
 );
 
 app.use(

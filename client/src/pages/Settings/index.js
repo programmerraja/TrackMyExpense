@@ -1,107 +1,147 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useState } from "react";
+import { Link } from "react-router-dom";
+
 import { useToast } from "../../components/Toast";
 import API from "../../utils/API";
-import "./style.css";
 
-const Settings = () => {
+const LINKS = [
+  {
+    to: "/import-rules",
+    label: "Import rules",
+    detail: "Edit what each bank payee becomes",
+  },
+  { to: "/investment", label: "Investments", detail: "Entries and totals" },
+];
+
+const ArrowIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    className="h-4 w-4"
+  >
+    <path d="m9 18 6-6-6-6" />
+  </svg>
+);
+
+export default function Settings() {
   const { addToast } = useToast();
-  const [budgetSettings, setBudgetSettings] = useState({
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState({
     baseSalaryLimit: Number(localStorage.getItem("baseSalaryLimit")) || 0,
     autoAllocationVault:
       localStorage.getItem("autoAllocationVault") || "emergency",
   });
 
-  const handleSaveSettings = useCallback(() => {
-    API.updateSettings(budgetSettings)
+  const save = useCallback(() => {
+    setSaving(true);
+    API.updateSettings(settings)
       .then(() => {
-        addToast("Budget settings saved!", "success");
-        localStorage.setItem("baseSalaryLimit", budgetSettings.baseSalaryLimit);
-        localStorage.setItem(
-          "autoAllocationVault",
-          budgetSettings.autoAllocationVault,
-        );
+        localStorage.setItem("baseSalaryLimit", settings.baseSalaryLimit);
+        localStorage.setItem("autoAllocationVault", settings.autoAllocationVault);
+        addToast("Salary rule saved", "success");
+        setSaving(false);
       })
-      .catch((err) => {
-        addToast("Failed to save settings: " + err.message, "error");
+      .catch(() => {
+        addToast("Could not save salary rule", "error");
+        setSaving(false);
       });
-  }, [budgetSettings, addToast]);
+  }, [settings, addToast]);
 
   return (
-    <div className="settingsPage">
-      <div className="settingsHeader">
-        <h2>Settings</h2>
-        <p>Manage your account preferences and budget rules.</p>
-      </div>
+    <main className="page">
+      <header className="mb-5">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-subtitle">Salary split and less-used tools</p>
+      </header>
 
-      <div className="settingsSection">
-        <h3>Budget & Vault Rules</h3>
-        <div className="settingsGrid">
-          <div className="settingItem">
-            <div className="settingLabelRow">
-              <label>Monthly Salary Limit</label>
-              <div className="infoPopover">
-                <span className="infoIcon">i</span>
-                <div className="popoverContent">
-                  Any income entry named "Salary" exceeding this limit will be
-                  automatically split. For example, if your limit is 75k and you
-                  earn 90k, the extra 15k is moved to your selected vault.
-                </div>
-              </div>
-            </div>
-            <input
-              type="number"
-              value={budgetSettings.baseSalaryLimit}
-              onChange={(e) =>
-                setBudgetSettings({
-                  ...budgetSettings,
-                  baseSalaryLimit: e.target.value,
-                })
-              }
-              placeholder="e.g. 75000"
-            />
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <section className="card p-4 sm:p-5">
+          <div className="mb-5">
+            <h2 className="font-semibold">Salary split</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              Keep a fixed amount as spendable salary. Any extra goes directly
+              to your emergency fund.
+            </p>
           </div>
 
-          <div className="settingItem">
-            <div className="settingLabelRow">
-              <label>Auto-Allocation Vault</label>
-              <div className="infoPopover">
-                <span className="infoIcon">i</span>
-                <div className="popoverContent">
-                  Choose which "Virtual Vault" should receive any income that
-                  exceeds your salary limit. This keeps your emergency savings
-                  separate from your daily spendable money.
-                </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="salary-limit" className="label">
+                Spendable salary
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500">
+                  ₹
+                </span>
+                <input
+                  id="salary-limit"
+                  type="number"
+                  inputMode="numeric"
+                  value={settings.baseSalaryLimit || ""}
+                  onChange={(event) =>
+                    setSettings({
+                      ...settings,
+                      baseSalaryLimit: Number(event.target.value),
+                    })
+                  }
+                  placeholder="85000"
+                  className="field pl-7"
+                />
               </div>
             </div>
-            <select
-              value={budgetSettings.autoAllocationVault}
-              onChange={(e) =>
-                setBudgetSettings({
-                  ...budgetSettings,
-                  autoAllocationVault: e.target.value,
-                })
-              }
-            >
-              <option value="emergency">Emergency Fund</option>
-              <option value="debt">Debt / Savings</option>
-            </select>
-          </div>
-        </div>
-        <button className="saveBtn" onClick={handleSaveSettings}>
-          Save Budget Settings
-        </button>
-      </div>
 
-      <div className="settingsSection">
-        <h3>Privacy Mode Info</h3>
-        <p className="privacySummary">
-          You can toggle **Privacy Mode** directly from the Dashboard. When on,
-          only your **Primary** vault data is shown, hiding your allocated
-          savings from view.
-        </p>
+            <div>
+              <label htmlFor="surplus-account" className="label">
+                Put the extra into
+              </label>
+              <select
+                id="surplus-account"
+                value={settings.autoAllocationVault}
+                onChange={(event) =>
+                  setSettings({
+                    ...settings,
+                    autoAllocationVault: event.target.value,
+                  })
+                }
+                className="field"
+              >
+                <option value="emergency">Emergency fund</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end border-t border-white/5 pt-4">
+            <button onClick={save} disabled={saving} className="btn-primary">
+              {saving ? "Saving…" : "Save salary rule"}
+            </button>
+          </div>
+        </section>
+
+        <section className="card overflow-hidden">
+          <div className="border-b border-white/5 px-4 py-3">
+            <h2 className="font-semibold">More tools</h2>
+          </div>
+          <div className="divide-y divide-white/5">
+            {LINKS.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="flex items-center justify-between gap-3 px-4 py-3.5 text-slate-100 no-underline transition hover:bg-white/[0.035]"
+              >
+                <div>
+                  <p className="font-medium">{item.label}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{item.detail}</p>
+                </div>
+                <span className="text-slate-500">
+                  <ArrowIcon />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
-};
-
-export default Settings;
+}

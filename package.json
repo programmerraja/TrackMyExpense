@@ -9,7 +9,9 @@
     "start:dev": "node server.js",
     "client": "cd client && npm run start",
     "seed": " node scripts/Seeds.js",
-    "install2": "cd client && npm install && npm run build"
+    "install2": "cd client && npm install && npm run build",
+    "check:workspace": "node scripts/checkWorkspaceScope.js",
+    "check:bank-import": "node scripts/checkBankImport.js"
   },
   "author": "boopathi",
   "license": "MIT",

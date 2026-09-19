@@ -1,253 +1,114 @@
-import React, { useState, useCallback } from "react";
-import { useBankStatement } from "../hooks/useBankStatement";
+import React, { useCallback, useState } from "react";
+
 import BankStatementUpload from "../components/BankStatementUpload";
-import BankStatementDashboard from "../components/BankStatementDashboard";
-import TransactionTable from "../components/TransactionTable";
-import TransactionFilters from "../components/TransactionFilters";
-import StatementCharts from "../components/StatementCharts";
-import { ImportForm, SquareLoader } from "../components";
+import ImportForm from "../components/ImportForm";
 import { useToast } from "../components/Toast";
-import "./BankStatement.css";
+import { useBankStatement } from "../hooks/useBankStatement";
 
-const BankStatement = () => {
-  const [currentStatementId, setCurrentStatementId] = useState(null);
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [selectedTransactionsForExpense, setSelectedTransactionsForExpense] =
-    useState([]);
-
+export default function BankStatement() {
+  const [statementId, setStatementId] = useState(null);
   const {
     bankStatement,
     transactions,
-    uploadSession,
-    filters,
-    chartSettings,
-    selectedTransactions,
+    mappings,
+    mappingsLoading,
     loading,
     error,
-    filteredTransactions,
-    summaryData,
     createNewStatement,
-    updateStatementStatus,
     setStatementTransactions,
-    updateTransaction,
-    updateTransactionNarration,
-    toggleTransactionSelection,
-    selectAllTransactions,
-    clearSelection,
-    updateFilters,
-    clearFilters,
-    updateChartSettings,
     setLoadingState,
     setErrorState,
     clearError,
-    loadStatementData,
+    resetStatement,
     importTransactions,
     importStatus,
-  } = useBankStatement(currentStatementId);
-
+  } = useBankStatement(statementId);
   const { addToast } = useToast();
+
+  const reset = useCallback(() => {
+    resetStatement();
+    setStatementId(null);
+    clearError();
+  }, [clearError, resetStatement]);
 
   const handleFileUpload = useCallback(
     (file) => {
       clearError();
-      const newStatement = createNewStatement(file);
-      setCurrentStatementId(newStatement.id);
+      const statement = createNewStatement(file);
+      setStatementId(statement.id);
       setLoadingState(true);
     },
-    [createNewStatement, clearError, setLoadingState],
+    [clearError, createNewStatement, setLoadingState],
   );
 
   const handleFileProcessed = useCallback(
-    (statement, parsedTransactions) => {
+    (parsedTransactions) => {
       setStatementTransactions(parsedTransactions);
       setLoadingState(false);
-      updateStatementStatus("completed");
     },
-    [setStatementTransactions, setLoadingState, updateStatementStatus],
+    [setStatementTransactions, setLoadingState],
   );
 
-  const handleFileError = useCallback(
-    (errorMessage) => {
-      setErrorState(errorMessage);
-      updateStatementStatus("failed", errorMessage);
-    },
-    [setErrorState, updateStatementStatus],
-  );
+  const handleImport = (entries, mappingsToSave) => {
+    importTransactions(entries, mappingsToSave, (result) => {
+      if (result.errors.length) {
+        addToast(
+          `Imported ${result.success}; ${result.errors.length} failed`,
+          "error",
+        );
+        return;
+      }
 
-  const handleTransactionUpdate = useCallback(
-    (transactionId, updates) => {
-      updateTransaction(transactionId, updates);
-    },
-    [updateTransaction],
-  );
+      const duplicateMessage = result.duplicates
+        ? `; ${result.duplicates} already imported`
+        : "";
+      addToast(
+        `Imported ${result.success} entries${duplicateMessage}`,
+        "success",
+      );
+      reset();
+    });
+  };
 
-  const handleTransactionSelect = useCallback(
-    (transactionId) => {
-      toggleTransactionSelection(transactionId);
-    },
-    [toggleTransactionSelection],
-  );
-
-  const handleSelectAll = useCallback(() => {
-    selectAllTransactions();
-  }, [selectAllTransactions]);
-
-  const handleClearSelection = useCallback(() => {
-    clearSelection();
-  }, [clearSelection]);
-
-  const handleAddToExpenseTracking = useCallback(() => {
-    if (selectedTransactions.length === 0) return;
-
-    // Get selected transaction data
-    const selectedTxnData = transactions.filter((txn) =>
-      selectedTransactions.includes(txn.id),
-    );
-
-    setSelectedTransactionsForExpense(selectedTxnData);
-    setShowExpenseForm(true);
-  }, [selectedTransactions, transactions]);
-
-  const handleFiltersChange = useCallback(
-    (newFilters) => {
-      updateFilters(newFilters);
-    },
-    [updateFilters],
-  );
-
-  const handleClearFilters = useCallback(() => {
-    clearFilters();
-  }, [clearFilters]);
-
-  const handleChartSettingsChange = useCallback(
-    (newSettings) => {
-      updateChartSettings(newSettings);
-    },
-    [updateChartSettings],
-  );
-
-  const handleNewUpload = useCallback(() => {
-    setCurrentStatementId(null);
-    clearError();
-    setShowExpenseForm(false);
-    setSelectedTransactionsForExpense([]);
-  }, [clearError]);
-
-  const handleCloseExpenseForm = useCallback(() => {
-    setShowExpenseForm(false);
-    setSelectedTransactionsForExpense([]);
-  }, []);
-
-  if (showExpenseForm) {
+  if (bankStatement && !loading && transactions.length) {
     return (
-      <div className="bank-statement-page">
+      <main className="page-wide">
         <ImportForm
-          transactions={selectedTransactionsForExpense}
+          transactions={transactions}
+          mappings={mappings}
+          mappingsLoading={mappingsLoading}
           importStatus={importStatus}
-          onCancel={handleCloseExpenseForm}
-          onImport={(mappedExpenses) => {
-            importTransactions(mappedExpenses, (results) => {
-              if (results.errors.length === 0) {
-                addToast(
-                  `Successfully imported ${results.success} items!`,
-                  "success",
-                );
-                handleCloseExpenseForm();
-                handleNewUpload(); // Reset to allow more uploads or go back to results
-              } else {
-                addToast(
-                  `Imported ${results.success} items with ${results.errors.length} errors`,
-                  "warning",
-                );
-              }
-            });
-          }}
+          onCancel={reset}
+          onImport={handleImport}
         />
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="bank-statement-page">
-      <div className="page-header">
-        <h1>Bank Statement Visualizer</h1>
-        <p>
-          Upload and analyze your bank statements with interactive charts and
-          filters
+    <main className="page-wide">
+      <header className="mb-5">
+        <h1 className="page-title">Import statement</h1>
+        <p className="page-subtitle">
+          Upload once, review known groups, and teach new transactions
         </p>
-      </div>
+      </header>
 
       {error && (
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={clearError}>Dismiss</button>
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-money-out/20 bg-money-out/10 px-4 py-3 text-sm text-money-out">
+          <span>{error}</span>
+          <button onClick={clearError} className="font-semibold">
+            Dismiss
+          </button>
         </div>
       )}
 
-      {!bankStatement ? (
-        <div className="upload-section">
-          <BankStatementUpload
-            onFileUpload={handleFileUpload}
-            onFileProcessed={handleFileProcessed}
-            onError={handleFileError}
-            loading={loading}
-          />
-        </div>
-      ) : (
-        <div className="statement-analysis">
-          <div className="analysis-header">
-            <div className="statement-info">
-              <h2>{bankStatement.filename}</h2>
-              <p>
-                Uploaded: {new Date(bankStatement.uploadDate).toLocaleString()}{" "}
-                •{bankStatement.totalTransactions} transactions •
-                {bankStatement.fileType.toUpperCase()}
-              </p>
-            </div>
-            <button className="btn-new-upload" onClick={handleNewUpload}>
-              Upload New Statement
-            </button>
-          </div>
-
-          <BankStatementDashboard
-            summaryData={summaryData}
-            selectedTransactions={selectedTransactions}
-            onSelectAll={handleSelectAll}
-            onClearSelection={handleClearSelection}
-            onAddToExpenseTracking={handleAddToExpenseTracking}
-            loading={loading}
-          />
-          <StatementCharts
-            transactions={filteredTransactions}
-            chartSettings={chartSettings}
-            onChartSettingsChange={handleChartSettingsChange}
-            loading={loading}
-          />
-
-          <div className="analysis-content">
-            <div className="charts-section">
-              <TransactionFilters
-                filters={filters}
-                onFiltersChange={handleFiltersChange}
-                onClearFilters={handleClearFilters}
-                transactionCount={filteredTransactions.length}
-              />
-            </div>
-
-            <div className="table-section">
-              <TransactionTable
-                transactions={filteredTransactions}
-                onTransactionUpdate={handleTransactionUpdate}
-                onTransactionSelect={handleTransactionSelect}
-                selectedTransactions={selectedTransactions}
-                loading={loading}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <BankStatementUpload
+        onFileUpload={handleFileUpload}
+        onFileProcessed={handleFileProcessed}
+        onError={setErrorState}
+        loading={loading}
+      />
+    </main>
   );
-};
-
-export default BankStatement;
+}

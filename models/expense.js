@@ -15,11 +15,25 @@ const ExpenseSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  bankNarration: {
+    type: String,
+    trim: true,
+  },
+  bankReference: {
+    type: String,
+    trim: true,
+  },
+  importFingerprint: {
+    type: String,
+  },
   amount: {
     type: Number,
     required: [true, "Please add a positive or negative number"],
   },
   userId: {
+    type: String,
+  },
+  workspaceId: {
     type: String,
   },
   category: {
@@ -53,6 +67,11 @@ const ExpenseSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+ExpenseSchema.index(
+  { userId: 1, importFingerprint: 1 },
+  { unique: true, sparse: true },
+);
 
 const Expense = mongoose.model("expense", ExpenseSchema);
 

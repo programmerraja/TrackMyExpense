@@ -3,20 +3,22 @@ import {
   BrowserRouter as Router,
   Route,
   Routes,
-  Navigate,
 } from "react-router-dom";
 
-import Dashboard, { EXPENSE_TYPE } from "./components/Dashboard";
+import Dashboard from "./components/Dashboard";
+import { EXPENSE_TYPE } from "./constants/expense";
 import SideNav from "./components/SideNav";
 import Signin from "./pages/signin";
-import MonthlyExpenseGraph from "./pages/MonthlyExpenseGraph";
 import ProtectedRoute from "./utils/Route";
 import { ToastProvider } from "./components/Toast";
 import PriceTracking from "./pages/PriceTracking";
+import People from "./pages/People";
 import Search from "./pages/Search";
 import BankStatement from "./pages/BankStatement";
+import Mappings from "./pages/Mappings";
 import Settings from "./pages/Settings";
 import API from "./utils/API";
+import { WorkspaceProvider } from "./context/WorkspaceContext";
 
 import "./App.css";
 
@@ -25,10 +27,17 @@ function App() {
 
   return (
     <ToastProvider>
-      <Router>
-        {isAuthenticated && <SideNav />}
-        <div className={isAuthenticated ? "appSideContent" : ""}>
-          <Routes>
+      <WorkspaceProvider enabled={isAuthenticated}>
+        <Router>
+          {isAuthenticated && <SideNav />}
+          <div
+            className={
+              isAuthenticated
+                ? "min-h-screen pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[4.5rem] lg:pl-60"
+                : "min-h-screen"
+            }
+          >
+            <Routes>
             <Route path="/signin" element={<Signin />} />
             <Route element={<ProtectedRoute />}>
               <Route
@@ -51,6 +60,7 @@ function App() {
                   <Dashboard key="expense" type={EXPENSE_TYPE.EXPENSE} />
                 }
               />
+              <Route path="/people" element={<People />} />
               <Route
                 path="/debt"
                 element={<Dashboard key="debt" type={EXPENSE_TYPE.DEBT} />}
@@ -71,18 +81,16 @@ function App() {
                   <Dashboard key="incometax" type={EXPENSE_TYPE.INCOME_TAX} />
                 }
               />
-              <Route
-                path="/monthly-expense-graph"
-                element={<MonthlyExpenseGraph />}
-              />
               <Route path="/tracking" element={<PriceTracking />} />
               <Route path="/search" element={<Search />} />
               <Route path="/bank-statement" element={<BankStatement />} />
+              <Route path="/import-rules" element={<Mappings />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
-          </Routes>
-        </div>
-      </Router>
+            </Routes>
+          </div>
+        </Router>
+      </WorkspaceProvider>
     </ToastProvider>
   );
 }

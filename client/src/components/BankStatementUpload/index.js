@@ -1,138 +1,91 @@
-import React, { useCallback, useRef } from 'react';
-import { parseBankStatementFile, validateFile } from '../../utils/fileParser';
-import './style.css';
+import React, { useCallback, useRef } from "react";
 
-const BankStatementUpload = ({ 
-  onFileUpload, 
-  onFileProcessed, 
-  onError, 
+import {
+  parseBankStatementFile,
+  validateFile,
+} from "../../utils/fileParser";
+
+export default function BankStatementUpload({
+  onFileUpload,
+  onFileProcessed,
+  onError,
   loading = false,
-  disabled = false 
-}) => {
-  const fileInputRef = useRef(null);
-  const dropZoneRef = useRef(null);
+  disabled = false,
+}) {
+  const inputRef = useRef(null);
 
-  const handleFileSelect = useCallback(async (file) => {
-    if (!file) return;
+  const processFile = useCallback(
+    async (file) => {
+      if (!file) return;
+      const validation = validateFile(file);
+      if (!validation.isValid) {
+        onError(validation.error);
+        return;
+      }
 
-    // Validate file
-    const validation = validateFile(file);
-    if (!validation.isValid) {
-      onError(validation.error);
-      return;
-    }
+      try {
+        onFileUpload(file);
+        onFileProcessed(await parseBankStatementFile(file));
+      } catch (error) {
+        onError(`Could not read this statement: ${error.message}`);
+      }
+    },
+    [onFileUpload, onFileProcessed, onError],
+  );
 
-    try {
-      onFileUpload(file);
-      
-      // Parse the file
-      const transactions = await parseBankStatementFile(file);
-      
-      // Create bank statement object
-      const bankStatement = {
-        id: `stmt_${Date.now()}`,
-        filename: file.name,
-        fileSize: file.size,
-        fileType: file.name.toLowerCase().endsWith('.csv') ? 'csv' : 'txt',
-        uploadDate: new Date(),
-        processingStatus: 'completed',
-        errorMessage: null,
-        totalTransactions: transactions.length
-      };
+  const openPicker = () => {
+    if (!disabled && !loading) inputRef.current.click();
+  };
 
-      onFileProcessed(bankStatement, transactions);
-    } catch (error) {
-      onError(`Failed to process file: ${error.message}`);
-    }
-  }, [onFileUpload, onFileProcessed, onError]);
-
-  const handleFileInputChange = useCallback((e) => {
-    const file = e.target.files[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  }, [handleFileSelect]);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (disabled || loading) return;
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
-    }
-  }, [handleFileSelect, disabled, loading]);
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDragEnter = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleClick = useCallback(() => {
-    if (!disabled && !loading && fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  }, [disabled, loading]);
+  const handleDrop = (event) => {
+    event.preventDefault();
+    if (!disabled && !loading) processFile(event.dataTransfer.files[0]);
+  };
 
   return (
-    <div className="bank-statement-upload">
-      <div
-        ref={dropZoneRef}
-        className={`upload-dropzone ${loading ? 'loading' : ''} ${disabled ? 'disabled' : ''}`}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onClick={handleClick}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.txt"
-          onChange={handleFileInputChange}
-          style={{ display: 'none' }}
-          disabled={disabled || loading}
-        />
-        
-        <div className="upload-content">
-          {loading ? (
-            <div className="upload-loading">
-              <div className="spinner"></div>
-              <p>Processing file...</p>
-            </div>
-          ) : (
-            <div className="upload-prompt">
-              <div className="upload-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7,10 12,15 17,10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-              </div>
-              <h3>Upload Bank Statement</h3>
-              <p>Drag and drop your CSV or TXT file here, or click to browse</p>
-              <div className="upload-requirements">
-                <p>Supported formats: CSV, TXT</p>
-                <p>Maximum file size: 10MB</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
+    <button
+      type="button"
+      onClick={openPicker}
+      onDrop={handleDrop}
+      onDragOver={(event) => event.preventDefault()}
+      disabled={disabled || loading}
+      className="card flex w-full flex-col items-center border-dashed p-8 text-center transition hover:border-brand-500/40 hover:bg-ink-800 disabled:cursor-wait sm:p-12"
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,.txt"
+        onChange={(event) => processFile(event.target.files[0])}
+        className="hidden"
+        disabled={disabled || loading}
+      />
 
-export default BankStatementUpload;
+      {loading ? (
+        <>
+          <span className="h-9 w-9 animate-spin rounded-full border-2 border-white/10 border-t-brand-400" />
+          <p className="mt-4 font-semibold">Reading statement…</p>
+        </>
+      ) : (
+        <>
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/15 text-brand-400">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="h-6 w-6"
+            >
+              <path d="M12 3v12m0-12L8 7m4-4 4 4" />
+              <path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+            </svg>
+          </span>
+          <p className="mt-4 font-semibold">Choose bank statement</p>
+          <p className="mt-1 max-w-sm text-sm text-slate-400">
+            CSV or TXT, up to 10 MB. You will review every row before importing.
+          </p>
+          <span className="btn-primary mt-5">Browse files</span>
+        </>
+      )}
+    </button>
+  );
+}

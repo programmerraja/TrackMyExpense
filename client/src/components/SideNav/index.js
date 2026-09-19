@@ -1,169 +1,386 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import "./style.css";
+import { useWorkspace } from "../../context/WorkspaceContext";
+import { useToast } from "../Toast";
 
+const icon = (path) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-[21px] w-[21px] shrink-0"
+  >
+    {path}
+  </svg>
+);
+
+// The first four also make up the phone bottom bar; the rest live behind "More".
 const NAV_ITEMS = [
   {
     path: "/dashboard",
-    label: "Dashboard",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-      >
-        <path d="M10.771 2.042q2.875.291 4.896 2.312t2.312 4.896h-5.583q-.229-.562-.646-.979-.417-.417-.979-.646Zm1.5 1.854v2.812q.291.23.562.48.271.25.479.562h2.813q-.5-1.354-1.5-2.354t-2.354-1.5Zm-3-1.854v5.583q-.771.292-1.261.927-.489.636-.489 1.448 0 .812.489 1.458.49.646 1.261.917v5.583q-3.104-.312-5.177-2.583Q2.021 13.104 2.021 10t2.073-5.385q2.073-2.282 5.177-2.573Zm-1.5 1.854q-1.917.75-3.083 2.406Q3.521 7.958 3.521 10q0 2.062 1.167 3.719 1.166 1.656 3.083 2.385v-2.812q-.792-.584-1.271-1.438Q6.021 11 6.021 10T6.5 8.146q.479-.854 1.271-1.438Zm4.625 6.854h5.583q-.291 2.875-2.312 4.896t-4.896 2.312v-5.583q.562-.229.989-.646.428-.417.636-.979Zm.916 1.5q-.208.312-.468.573-.261.26-.573.469v2.812q1.354-.5 2.354-1.5t1.5-2.354ZM6.021 10Zm7.291-2.25Zm0 4.5Z"></path>
-      </svg>
+    label: "Home",
+    icon: icon(
+      <>
+        <path d="M3 10.5 12 3l9 7.5" />
+        <path d="M5 9.5V21h14V9.5" />
+      </>,
     ),
   },
   {
-    path: "/search",
-    label: "Search",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
-      </svg>
+    path: "/expense",
+    label: "Spending",
+    icon: icon(
+      <>
+        <path d="M3 17l6-6 4 4 7-7" />
+        <path d="M14 8h6v6" />
+      </>,
+    ),
+  },
+  {
+    path: "/people",
+    label: "People",
+    icon: icon(
+      <>
+        <circle cx="9" cy="8" r="3.2" />
+        <path d="M2.5 20c0-3.3 2.9-5.2 6.5-5.2s6.5 1.9 6.5 5.2" />
+        <path d="M17 11.2A3 3 0 0 0 17 5.4" />
+        <path d="M18.5 19.8c.6-.2 3-.7 3-2.6 0-1.7-1.5-2.7-3.4-3" />
+      </>,
+    ),
+  },
+  {
+    path: "/bank-statement",
+    label: "Import",
+    icon: icon(
+      <>
+        <path d="M12 3v11" />
+        <path d="m8 10 4 4 4-4" />
+        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+      </>,
     ),
   },
   {
     path: "/income",
     label: "Income",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-      >
-        <path d="M5 14q-.354 0-.615-.26-.26-.261-.26-.615V9.417q0-.355.26-.605.261-.25.615-.25t.615.261q.26.26.26.615v3.708q0 .354-.26.604Q5.354 14 5 14Zm5.021 0q-.354 0-.615-.26-.26-.261-.26-.615V9.417q0-.355.26-.605.261-.25.615-.25t.614.261q.261.26.261.615v3.708q0 .354-.261.604-.26.25-.614.25Zm-7.5 3.5q-.354 0-.604-.26-.25-.261-.25-.615t.26-.615q.261-.26.615-.26H17.5q.354 0 .604.26.25.261.25.615t-.26.615q-.261.26-.615.26Zm12.5-3.5q-.354 0-.615-.26-.26-.261-.26-.615V9.417q0-.355.26-.605.261-.25.615-.25t.614.261q.261.26.261.615v3.708q0 .354-.261.604-.26.25-.614.25ZM10.812 1.229l6.771 3.438q.334.166.552.448.219.281.219.635 0 .438-.312.75-.313.312-.771.312H2.729q-.437 0-.75-.312-.312-.312-.312-.75 0-.354.218-.635.219-.282.553-.448l6.791-3.438q.375-.208.792-.198.417.011.791.198ZM5.5 5.062h9.021Zm0 0h9.021l-4.5-2.27Z"></path>
-      </svg>
-    ),
-  },
-  {
-    path: "/expense",
-    label: "Expense",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-      >
-        <path d="M5.083 18.333q-.729 0-1.239-.51-.511-.511-.511-1.24V3.417q0-.729.511-1.24.51-.51 1.239-.51h5.771q.354 0 .677.135.323.136.573.386l4.042 4.041q.25.25.385.573.136.323.136.677v9.104q0 .729-.511 1.24-.51.51-1.239.51Zm0-11.583V3.417v13.166V6.75ZM8.375 15q-.354 0-.615-.26-.26-.261-.26-.615t.26-.615q.261-.26.615-.26h2.417v-.708H8.375q-.354 0-.615-.261-.26-.26-.26-.614V9.208q0-.354.26-.614.261-.261.615-.261h.75v-.041q0-.354.26-.615.261-.26.615-.26t.615.26q.26.261.26.615v.041h.75q.354 0 .615.261.26.26.26.614t-.26.615q-.261.26-.615.26H9.25v.709h2.375q.354 0 .615.26.26.26.26.615v2.458q0 .354-.26.615-.261.26-.615.26h-.75v.042q0 .354-.26.614-.261.261-.615.261t-.615-.261q-.26-.26-.26-.614V15Zm6.542-8.25H11.75q-.354 0-.615-.26-.26-.261-.26-.615V3.417H5.083v13.166h9.834Z"></path>
-      </svg>
-    ),
-  },
-  {
-    path: "/investment",
-    label: "Investment",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-      >
-        <path d="M10 19.167q-2.333 0-4.25-1.063-1.917-1.062-3.167-2.833v1.354q0 .354-.26.615-.261.26-.615.26t-.614-.26q-.261-.261-.261-.615v-3.25q0-.354.261-.615.26-.26.614-.26h3.25q.354 0 .615.26.26.261.26.615t-.26.615q-.261.26-.615.26h-.937Q5 15.688 6.552 16.552q1.552.865 3.448.865 2.854 0 4.948-1.875 2.094-1.875 2.427-4.667.042-.354.302-.615.261-.26.615-.26t.614.26q.261.261.219.615-.167 1.75-.937 3.26-.771 1.511-2 2.636-1.23 1.125-2.813 1.76-1.583.636-3.375.636ZM1.708 10q-.354 0-.614-.26-.261-.261-.219-.615.167-1.75.937-3.26.771-1.511 2-2.636 1.23-1.125 2.813-1.76Q8.208.833 10 .833q2.333 0 4.25 1.063 1.917 1.062 3.167 2.833V3.375q0-.354.26-.615.261-.26.615-.26t.614.26q.261.261.261.615v3.25q0 .354-.261.615-.26.26-.614.26h-3.25q-.354 0-.615-.26-.26-.261-.26-.615t.26-.615q.261-.26.615-.26h.937Q15 4.292 13.448 3.438 11.896 2.583 10 2.583q-2.875 0-4.969 1.875-2.093 1.875-2.406 4.667-.042.354-.302.615-.261.26-.615.26ZM10 15.812q-.312 0-.542-.218-.229-.219-.229-.532v-.354q-.771-.166-1.312-.593-.542-.427-.875-1.115-.167-.312-.042-.615.125-.302.458-.427.292-.104.573.021.281.125.448.417.292.479.698.729.406.25.948.25.729 0 1.167-.344.437-.343.437-.927 0-.562-.458-.927-.459-.365-1.833-.865-1.25-.458-1.813-1.072-.563-.615-.563-1.552 0-.876.605-1.553.604-.677 1.604-.906v-.291q0-.313.229-.532.229-.218.542-.218.312 0 .531.218.219.219.219.532v.291q.541.063 1.052.386.51.323.823.823.166.25.041.552-.125.302-.437.427-.25.104-.521.01t-.5-.365q-.229-.25-.521-.374-.291-.126-.687-.126-.667 0-1.042.292t-.375.834q0 .5.448.812.448.312 1.719.729 1.27.479 1.864 1.167.594.687.594 1.708 0 1.063-.625 1.74t-1.875.906v.292q0 .312-.219.541-.219.229-.531.229Z"></path>
-      </svg>
-    ),
-  },
-  {
-    path: "/debt",
-    label: "Debt",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-      >
-        <path d="M6.708 3.417q-.354 0-.614-.261-.261-.26-.261-.614t.261-.615q.26-.26.614-.26h6.584q.354 0 .614.26.261.261.261.615t-.261.614q-.26.261-.614.261Zm-2.458 2.5q-.354 0-.615-.261-.26-.26-.26-.614t.26-.615q.261-.26.615-.26h11.521q.354 0 .614.26.261.261.261.615t-.261.614q-.26.261-.614.261Zm-.833 12.416q-.729 0-1.24-.51-.51-.511-.51-1.24V8.417q0-.729.51-1.24.511-.51 1.24-.51h13.166q.729 0 1.24.51.51.511.51 1.24v8.166q0 .729-.51 1.24-.511.51-1.24.51Zm0-1.75h13.166V8.417H3.417v8.166Zm6.25-1.604 2.625-1.75q.396-.271.406-.729.01-.458-.386-.729l-2.645-1.75q-.438-.292-.896-.042-.459.25-.459.771v3.5q0 .542.459.781.458.24.896-.052Zm-6.25-6.583v8.187-8.187Z"></path>
-      </svg>
+    icon: icon(
+      <>
+        <path d="M12 3v18" />
+        <path d="M17 7.5C17 5.6 14.8 4.5 12 4.5S7 5.6 7 7.5s2.2 2.8 5 3.4 5 1.5 5 3.4-2.2 3-5 3-5-1.1-5-3" />
+      </>,
     ),
   },
   {
     path: "/incometax",
-    label: "Income Tax",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-      >
-        <path d="M6.708 3.417q-.354 0-.614-.261-.261-.26-.261-.614t.261-.615q.26-.26.614-.26h6.584q.354 0 .614.26.261.261.261.615t-.261.614q-.26.261-.614.261Zm-2.458 2.5q-.354 0-.615-.261-.26-.26-.26-.614t.26-.615q.261-.26.615-.26h11.521q.354 0 .614.26.261.261.261.615t-.261.614q-.26.261-.614.261Zm-.833 12.416q-.729 0-1.24-.51-.51-.511-.51-1.24V8.417q0-.729.51-1.24.511-.51 1.24-.51h13.166q.729 0 1.24.51.51.511.51 1.24v8.166q0 .729-.51 1.24-.511.51-1.24.51Zm0-1.75h13.166V8.417H3.417v8.166Zm6.25-1.604 2.625-1.75q.396-.271.406-.729.01-.458-.386-.729l-2.645-1.75q-.438-.292-.896-.042-.459.25-.459.771v3.5q0 .542.459.781.458.24.896-.052Zm-6.25-6.583v8.187-8.187Z"></path>
-      </svg>
+    label: "Tax",
+    icon: icon(
+      <>
+        <path d="M6 3h9l5 5v13H6z" />
+        <path d="M14 3v6h6" />
+        <path d="M9.5 16.5 15 11" />
+        <circle cx="10" cy="12" r="1" />
+        <circle cx="14.5" cy="16" r="1" />
+      </>,
     ),
   },
   {
     path: "/tracking",
-    label: "Price Tracking",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-      >
-        <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"></path>
-      </svg>
+    label: "Tracking",
+    icon: icon(
+      <>
+        <path d="M3 3v16.5a1.5 1.5 0 0 0 1.5 1.5H21" />
+        <path d="m7 15 3.5-4 3 2.5L18 8" />
+      </>,
     ),
   },
   {
-    path: "/bank-statement",
-    label: "Bank Statement",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-      >
-        <path d="M3.5 18q-.625 0-1.062-.438Q2 17.125 2 16.5v-13q0-.625.438-1.062Q2.875 2 3.5 2h13q.625 0 1.062.438Q18 2.875 18 3.5v13q0 .625-.438 1.062Q17.125 18 16.5 18Zm0-1.5h13v-13h-13v13Zm2-2h9v-1.5h-9Zm0-2.5h9V10.5h-9Zm0-2.5h9V8h-9ZM4 4.5h12v-1H4v1Zm0 11h12v-1H4v1Z"></path>
-      </svg>
+    path: "/search",
+    label: "Search",
+    icon: icon(
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </>,
     ),
   },
   {
     path: "/settings",
     label: "Settings",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        height="20"
-        width="20"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.3-.06.61-.06.94s.02.64.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"></path>
-      </svg>
+    icon: icon(
+      <>
+        <circle cx="12" cy="12" r="3.2" />
+        <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" />
+      </>,
     ),
   },
 ];
 
-export default function SideNav() {
+const PRIMARY_COUNT = 4;
+
+const activeClasses = "bg-brand-500 text-white";
+const idleClasses = "text-slate-400 hover:bg-white/[0.07] hover:text-slate-100";
+
+const MoreIcon = () =>
+  icon(
+    <>
+      <circle cx="5" cy="12" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="19" cy="12" r="1.4" />
+    </>,
+  );
+
+function WorkspaceDialog({ onClose }) {
+  const {
+    workspaces,
+    activeWorkspaceId,
+    switchWorkspace,
+    createWorkspace,
+  } = useWorkspace();
+  const { addToast } = useToast();
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!name.trim()) return;
+
+    setSaving(true);
+    try {
+      await createWorkspace(name.trim());
+      addToast("Workspace created", "success");
+      onClose();
+    } catch (error) {
+      addToast(
+        error.response?.data?.error || "Could not create workspace",
+        "error",
+      );
+      setSaving(false);
+    }
+  };
+
   return (
-    <nav className="sideNavWrapper">
-      {NAV_ITEMS.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          className={({ isActive }) =>
-            `sideNavLink ${isActive ? "sideNavLink--active" : ""}`
-          }
-          title={item.label}
-          end={item.path === "/dashboard"}
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <section
+        className="w-full max-w-sm rounded-t-2xl border border-white/10 bg-ink-900 p-4 sm:rounded-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="workspace-title"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 id="workspace-title" className="font-semibold">
+              Workspaces
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Separate your income and spending
+            </p>
+          </div>
+          <button className="btn-icon" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {workspaces.map((workspace) => (
+            <button
+              key={workspace._id}
+              type="button"
+              onClick={() => {
+                switchWorkspace(workspace._id);
+                onClose();
+              }}
+              className={[
+                "flex h-11 w-full items-center justify-between rounded-lg px-3 text-left text-sm font-semibold transition",
+                workspace._id === activeWorkspaceId
+                  ? "bg-brand-500/15 text-brand-400"
+                  : "bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]",
+              ].join(" ")}
+            >
+              <span className="truncate">{workspace.name}</span>
+              {workspace._id === activeWorkspaceId && <span>✓</span>}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={submit} className="mt-4 border-t border-white/5 pt-4">
+          <label htmlFor="workspace-name" className="label">
+            New workspace
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="workspace-name"
+              className="field min-w-0"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="e.g. Side business"
+              maxLength="40"
+            />
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={saving || !name.trim()}
+            >
+              {saving ? "Creating…" : "Create"}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+export default function SideNav() {
+  const [showMore, setShowMore] = useState(false);
+  const [showWorkspaces, setShowWorkspaces] = useState(false);
+  const { activeWorkspace, loading: workspaceLoading } = useWorkspace();
+
+  const railLink = ({ isActive }) =>
+    [
+      "flex items-center gap-3 rounded-lg px-3 text-sm font-semibold no-underline transition",
+      "h-10 w-10 justify-center lg:h-10 lg:w-full lg:justify-start",
+      isActive ? activeClasses : idleClasses,
+    ].join(" ");
+
+  const barLink = ({ isActive }) =>
+    [
+      "flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5 no-underline transition",
+      isActive ? "text-brand-400" : "text-slate-500",
+    ].join(" ");
+
+  return (
+    <>
+      {/* Desktop: icon rail that grows into a labelled sidebar on wide screens. */}
+      <nav className="fixed inset-y-0 left-0 z-40 hidden w-[4.5rem] flex-col gap-1 border-r border-white/[0.06] bg-ink-900 px-3 py-4 md:flex lg:w-60">
+        <div className="mb-4 flex h-10 items-center gap-2.5 px-1 lg:px-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white">
+            ₹
+          </span>
+          <span className="hidden truncate font-bold tracking-tight lg:block">
+            TrackMyExpense
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowWorkspaces(true)}
+          className="mb-3 flex h-11 w-10 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.03] text-slate-300 transition hover:bg-white/[0.07] lg:w-full lg:justify-between lg:px-3"
+          title="Switch workspace"
         >
-          <div className="sideNavIcon">{item.icon}</div>
-          <span className="sideNavTooltip">{item.label}</span>
-        </NavLink>
-      ))}
-    </nav>
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-xs font-bold uppercase text-brand-400">
+              {(activeWorkspace?.name || "W").charAt(0)}
+            </span>
+            <span className="hidden truncate text-sm font-semibold lg:block">
+              {workspaceLoading
+                ? "Loading…"
+                : activeWorkspace?.name || "Personal"}
+            </span>
+          </span>
+          <span className="hidden text-slate-500 lg:block">⌄</span>
+        </button>
+
+        {NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={railLink}
+            title={item.label}
+            end={item.path === "/dashboard"}
+          >
+            {item.icon}
+            <span className="hidden lg:block">{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* Phone: four primary tabs plus an overflow sheet for everything else. */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch gap-1 border-t border-white/[0.06] bg-ink-900/95 px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden">
+        {NAV_ITEMS.slice(0, PRIMARY_COUNT).map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={barLink}
+            end={item.path === "/dashboard"}
+            onClick={() => setShowMore(false)}
+          >
+            {item.icon}
+            <span className="text-[10px] font-semibold">{item.label}</span>
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          onClick={() => setShowMore((open) => !open)}
+          className={[
+            "flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5 transition",
+            showMore ? "text-brand-400" : "text-slate-500",
+          ].join(" ")}
+        >
+          <MoreIcon />
+          <span className="text-[10px] font-semibold">More</span>
+        </button>
+      </nav>
+
+      {showMore && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={() => setShowMore(false)}
+        >
+          <div
+            className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-white/10 bg-ink-900 p-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
+            <button
+              type="button"
+              onClick={() => {
+                setShowMore(false);
+                setShowWorkspaces(true);
+              }}
+              className="mb-3 flex h-12 w-full items-center justify-between rounded-xl bg-brand-500/10 px-3 text-left"
+            >
+              <span>
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Workspace
+                </span>
+                <span className="block text-sm font-semibold text-brand-400">
+                  {activeWorkspace?.name || "Personal"}
+                </span>
+              </span>
+              <span className="text-sm font-semibold text-slate-400">
+                Switch
+              </span>
+            </button>
+            <div className="grid grid-cols-3 gap-2">
+              {NAV_ITEMS.slice(PRIMARY_COUNT).map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setShowMore(false)}
+                  className={({ isActive }) =>
+                    [
+                      "flex flex-col items-center gap-2 rounded-xl px-2 py-4 text-xs font-semibold no-underline transition",
+                      isActive ? activeClasses : "bg-white/[0.04] text-slate-300",
+                    ].join(" ")
+                  }
+                >
+                  {item.icon}
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {showWorkspaces && (
+        <WorkspaceDialog onClose={() => setShowWorkspaces(false)} />
+      )}
+    </>
   );
 }
